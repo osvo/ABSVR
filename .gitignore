@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Environments
+.venv/
+venv/
+.env
+
+# Caches
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Runtime
+absvr_cache/
+
+# OS
+.DS_Store
+
+# Agent configs
+.agent/
+.agents/
+.claude/
+AGENTS.md
+CLAUDE.md
+skills-lock.json
