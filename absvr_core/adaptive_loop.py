@@ -645,7 +645,6 @@ def run_adaptive_svr(
                         "model_training", train_svr, doe_svr, g, svr_dim,
                         kernel=canonical_kernel, theta_init=gamma,
                         c_init=c_init, epsilon_init=epsilon_init,
-                        optim_method=svr_optim_method,
                     )
                 g_predict, g_mse = _time_phase(
                     "surrogate_prediction",
@@ -666,7 +665,6 @@ def run_adaptive_svr(
                     c_init=c_init,
                     epsilon_init=epsilon_init,
                     bounds_mode=svr_bounds_mode,
-                    optim_method=svr_optim_method,
                 )
                 g_predict, g_mse = _time_phase("surrogate_prediction", svr_predict, mc_svr, primary_model)
                 surrogate_for_gradients = primary_model

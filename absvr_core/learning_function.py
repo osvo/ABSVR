@@ -9,7 +9,7 @@ except ImportError:  # pragma: no cover
 
 
 SAMPLING_REGION_FACTOR = 0.1
-SLF_PENALTY_FACTOR = 100.0
+SLF_PENALTY_FACTOR = 100.0  # ζ in thesis Eq. 3.5 (NOT ξ_i slack variables)
 NUMERICAL_STABILITY_TERM = 1e-8
 
 
