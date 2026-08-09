@@ -61,3 +61,15 @@ Each run writes a JSON summary, a MATLAB result file, and the OpenSees call
 ledger under `results/planar_truss/`. Record all seeds before starting a
 confirmation campaign; never select or discard runs based on their error.
 
+For the frozen ten-seed campaign, run from the repository root:
+
+```bash
+python -m studies.planar_truss.run_uqlab_campaign \
+  --uqlab-core C:\path\to\UQLab\core --resume
+```
+
+The Python orchestrator starts an independent MATLAB process for each declared
+seed, writes the protocol before the first run, validates every ledger, and
+refuses to aggregate an incomplete or reordered seed set. `--resume` only skips
+a result after checking that its seed, profile, and call counts match its
+campaign slot.
