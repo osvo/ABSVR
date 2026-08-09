@@ -51,11 +51,16 @@ paper-like reconstruction, not an exact repetition of the reported 300-call
 AK-MCS realization. The published AK-MCS and A-bPCE values remain separate in
 `../literature_results.csv`.
 
-For the original AK-MCS `min(U) >= 2` stopping condition, use:
+For UQLab's native implementation of the original AK-MCS
+`min(U) >= 2` stopping condition, use:
 
 ```matlab
 run_uqlab_akmcs(11, "", "original_akmcs")
 ```
+
+This profile selects UQLab's dedicated `Method = 'AKMCS'` and
+`AKMCS.Convergence = 'stopU'`. It does not emulate the rule through the newer
+ALR `StopLF` interface, whose signed learning-function convention is different.
 
 Each run writes a JSON summary, a MATLAB result file, and the OpenSees call
 ledger under `results/planar_truss/`. Record all seeds before starting a

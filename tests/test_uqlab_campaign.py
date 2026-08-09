@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from studies.planar_truss.run_uqlab_campaign import summarize_results
@@ -72,3 +74,17 @@ def test_summary_refuses_invalid_failure_probability(pf: float) -> None:
             reference_pf=0.0015,
             published_pf=0.00152,
         )
+
+
+def test_original_profile_uses_uqlab_native_akmcs_stop_u() -> None:
+    wrapper = (
+        Path(__file__).parents[1]
+        / "studies"
+        / "planar_truss"
+        / "uqlab"
+        / "run_uqlab_akmcs.m"
+    ).read_text(encoding="utf-8")
+
+    assert "analysisOptions.Method = 'AKMCS';" in wrapper
+    assert "analysisOptions.AKMCS.Convergence = 'stopU';" in wrapper
+    assert "analysisOptions.AKMCS.ConvThres" not in wrapper

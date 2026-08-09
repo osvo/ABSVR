@@ -69,28 +69,43 @@ function summary = run_uqlab_akmcs(seed, outputFile, profile)
     myModel = uq_createModel(modelOptions);
 
     analysisOptions.Type = 'Reliability';
-    analysisOptions.Method = 'ALR';
     analysisOptions.Input = myInput;
     analysisOptions.Model = myModel;
-    analysisOptions.ALR.Metamodel = 'Kriging';
-    analysisOptions.ALR.Reliability = 'MCS';
-    analysisOptions.ALR.LearningFunction = 'U';
-    analysisOptions.ALR.IExpDesign.Sampling = 'LHS';
-    analysisOptions.ALR.IExpDesign.N = 30;
-    analysisOptions.ALR.Kriging.Corr.Family = 'Gaussian';
-    analysisOptions.ALR.MaxCandidateSize = 1e6;
-    analysisOptions.ALR.MaxAddedED = 970;
     analysisOptions.Simulation.MaxSampleSize = 1e6;
     analysisOptions.Simulation.BatchSize = 1e6;
 
     if profile == "paper_like"
+        analysisOptions.Method = 'ALR';
+        analysisOptions.ALR.Metamodel = 'Kriging';
+        analysisOptions.ALR.Reliability = 'MCS';
+        analysisOptions.ALR.LearningFunction = 'U';
+        analysisOptions.ALR.IExpDesign.Sampling = 'LHS';
+        analysisOptions.ALR.IExpDesign.N = 30;
+        analysisOptions.ALR.Kriging.Corr.Family = 'Gaussian';
+        analysisOptions.ALR.MaxCandidateSize = 1e6;
+        analysisOptions.ALR.MaxAddedED = 970;
         analysisOptions.ALR.Convergence = 'StopPfBound';
         analysisOptions.ALR.ConvThres = 0.10;
         analysisOptions.ALR.ConvIter = 2;
+        convergenceName = analysisOptions.ALR.Convergence;
+        convergenceThreshold = analysisOptions.ALR.ConvThres;
+        convergenceIterations = analysisOptions.ALR.ConvIter;
     else
-        analysisOptions.ALR.Convergence = 'StopLF';
-        analysisOptions.ALR.ConvThres = 2.0;
-        analysisOptions.ALR.ConvIter = 1;
+        % Use UQLab's native AK-MCS implementation. Its stopU function
+        % implements the Echard et al. rule min(abs(mu/sigma)) >= 2
+        % directly. ALR/StopLF uses different signed learning-function
+        % conventions and must not be presented as the original AK-MCS.
+        analysisOptions.Method = 'AKMCS';
+        analysisOptions.AKMCS.MetaModel = 'Kriging';
+        analysisOptions.AKMCS.LearningFunction = 'U';
+        analysisOptions.AKMCS.IExpDesign.Sampling = 'LHS';
+        analysisOptions.AKMCS.IExpDesign.N = 30;
+        analysisOptions.AKMCS.Kriging.Corr.Family = 'Gaussian';
+        analysisOptions.AKMCS.MaxAddedED = 970;
+        analysisOptions.AKMCS.Convergence = 'stopU';
+        convergenceName = analysisOptions.AKMCS.Convergence;
+        convergenceThreshold = 2.0;
+        convergenceIterations = 1;
     end
 
     analysis = uq_createAnalysis(analysisOptions);
@@ -104,7 +119,8 @@ function summary = run_uqlab_akmcs(seed, outputFile, profile)
     end
 
     summary.schema_version = 1;
-    summary.method = 'UQLab ALR / AK-MCS';
+    summary.method = sprintf('UQLab %s / AK-MCS', analysisOptions.Method);
+    summary.uqlab_reliability_method = analysisOptions.Method;
     summary.profile = char(profile);
     summary.seed = seed;
     summary.pf = result.Pf;
@@ -119,10 +135,10 @@ function summary = run_uqlab_akmcs(seed, outputFile, profile)
     summary.internal_mcs_size = 1e6;
     summary.kriging_covariance = 'Gaussian';
     summary.learning_function = 'U';
-    summary.convergence = analysisOptions.ALR.Convergence;
-    summary.convergence_threshold = analysisOptions.ALR.ConvThres;
-    summary.convergence_iterations = analysisOptions.ALR.ConvIter;
-    summary.max_candidate_size = analysisOptions.ALR.MaxCandidateSize;
+    summary.convergence = convergenceName;
+    summary.convergence_threshold = convergenceThreshold;
+    summary.convergence_iterations = convergenceIterations;
+    summary.max_candidate_size = 1e6;
     summary.matlab_release = version('-release');
     summary.matlab_version = version;
     summary.uqlab_entrypoint = uqlabLocation;

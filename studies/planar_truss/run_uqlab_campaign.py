@@ -191,12 +191,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         "algorithm_seeds": list(args.seeds),
         "runs_expected": len(args.seeds),
         "initial_design": {"sampling": "LHS", "size": 30},
+        "uqlab_reliability_method": (
+            "ALR" if args.profile == "paper_like" else "AKMCS"
+        ),
         "kriging_covariance": "Gaussian",
         "learning_function": "U",
         "convergence": (
             {"criterion": "StopPfBound", "threshold": 0.10, "iterations": 2}
             if args.profile == "paper_like"
-            else {"criterion": "StopLF", "threshold": 2.0, "iterations": 1}
+            else {"criterion": "stopU", "threshold": 2.0, "iterations": 1}
         ),
         "internal_mcs_size": 1_000_000,
         "max_candidate_size": 1_000_000,
