@@ -1,0 +1,53 @@
+{
+  "audit_passed": true,
+  "algorithm_seeds": [
+    11,
+    19,
+    31,
+    43,
+    53,
+    67,
+    79,
+    89,
+    101,
+    113
+  ],
+  "runs": 10,
+  "fixed_open_sees_calls_per_run": 95,
+  "total_open_sees_calls": 950,
+  "candidate_pool_size": 131072,
+  "evidence_schedule": [
+    15,
+    35,
+    55,
+    75,
+    95
+  ],
+  "mean_pf": 0.0015013456344604493,
+  "beta_from_mean_pf": 2.9674622760689626,
+  "standard_deviation_pf_across_algorithm_seeds": 4.743104456504742e-05,
+  "coefficient_of_variation_across_algorithm_seeds_percent": 3.159235520213378,
+  "t_interval_95_for_mean_across_algorithm_seeds": [
+    0.0014674155091742983,
+    0.0015352757597466003
+  ],
+  "relative_error_of_mean_vs_independent_rqmc_percent": 0.45684476762566606,
+  "relative_error_of_mean_vs_published_mcs_percent": 1.2272608907599196,
+  "mean_absolute_run_error_vs_independent_rqmc_percent": 2.220992728422384,
+  "median_absolute_run_error_vs_independent_rqmc_percent": 1.6993360733480873,
+  "maximum_absolute_run_error_vs_independent_rqmc_percent": 7.587733164717041,
+  "pooled_confusion_counts": {
+    "true_positive": 60657,
+    "false_positive": 2314,
+    "false_negative": 2783,
+    "true_negative": 41877286
+  },
+  "pooled_sensitivity": 0.9561317780580075,
+  "pooled_precision": 0.9632529259500405,
+  "independent_rqmc_reference_pf": 0.0015082359313964844,
+  "independent_rqmc_confidence_interval_95": [
+    0.0015022002354417054,
+    0.0015142716273512634
+  ],
+  "published_direct_mcs_reference_pf": 0.00152
+}

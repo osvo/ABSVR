@@ -142,7 +142,10 @@ def _validate_model(
     }
 
 
-def _summarize_runs(runs: Iterable[dict[str, Any]]) -> dict[str, Any]:
+def _summarize_runs(
+    runs: Iterable[dict[str, Any]],
+    reference_pf: float,
+) -> dict[str, Any]:
     run_list = list(runs)
     errors = np.array(
         [run["validation"]["relative_error_vs_independent_reference_percent"] for run in run_list],
@@ -160,6 +163,9 @@ def _summarize_runs(runs: Iterable[dict[str, Any]]) -> dict[str, Any]:
             float(np.std(estimates, ddof=1)) if len(run_list) > 1 else 0.0
         ),
         "mean_relative_error_percent": float(np.mean(errors)),
+        "relative_error_of_mean_pf_percent": float(
+            100.0 * abs(np.mean(estimates) - reference_pf) / reference_pf
+        ),
         "median_relative_error_percent": float(np.median(errors)),
         "minimum_relative_error_percent": float(np.min(errors)),
         "maximum_relative_error_percent": float(np.max(errors)),
@@ -316,7 +322,8 @@ def main() -> None:
 
     summaries = {
         _gradient_label(weight): _summarize_runs(
-            run for run in runs if np.isclose(run["gradient_weight"], weight)
+            (run for run in runs if np.isclose(run["gradient_weight"], weight)),
+            reference_pf,
         )
         for weight in args.gradient_weights
     }

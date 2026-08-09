@@ -69,3 +69,17 @@ are selected periodically by the corrected Bayesian evidence using only the
 current design. Independent scrambled Sobol samples are used only after each
 model has been frozen. Their reference evaluations are reported explicitly
 and are not counted as calls made by ABSVR.
+
+Audit a frozen confirmation campaign and regenerate the state-of-the-art
+comparison table with:
+
+```bash
+python -m studies.planar_truss.audit_campaign
+```
+
+The committed ten-seed confirmation uses the reference-blind protocol with
+the gradient term disabled, a fixed candidate population of `2^17`, and 95
+OpenSees calls per run. Its mean estimate is `Pf = 1.50135e-3`: the relative
+error is 0.457% against the independent 16-replication RQMC reference and
+1.227% against the published direct-MCS value. Per-run errors and the two
+least accurate seeds remain in the result file and audit; no run was removed.

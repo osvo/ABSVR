@@ -16,6 +16,11 @@ venv/
 
 # Runtime
 absvr_cache/
+results/planar_truss/*checkpoints/
+results/planar_truss/diagnostic_*
+results/planar_truss/pilot_*
+results/planar_truss/precheck_*
+results/planar_truss/smoke_*
 
 # OS
 .DS_Store
