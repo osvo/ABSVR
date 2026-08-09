@@ -79,12 +79,23 @@ comparison table with:
 python -m studies.planar_truss.audit_campaign
 ```
 
-The committed ten-seed confirmation uses the reference-blind protocol with
-the gradient term disabled, a fixed candidate population of `2^17`, and 95
-OpenSees calls per run. Its mean estimate is `Pf = 1.50135e-3`: the relative
-error is 0.457% against the independent 16-replication RQMC reference and
-1.227% against the published direct-MCS value. Per-run errors and the two
-least accurate seeds remain in the result file and audit; no run was removed.
+The committed version-2 confirmation uses ten algorithm seeds held out from
+the three development seeds, the gradient term disabled, a fixed candidate
+population of `2^17`, and 95 OpenSees calls per run. The 95-call budget was
+selected in a clearly labeled reference-aware development analysis before the
+confirmation protocol was committed; neither the subsequent training loops
+nor model selection use the reference or validation samples. The confirmed
+mean is `Pf = 1.47340e-3`, with 2.310% relative error against the independent
+16-replication RQMC reference and 3.066% against the published direct-MCS
+value. The median and maximum per-run errors are 1.549% and 7.667%.
+
+All ten runs remain in `confirmation_campaign_v2.json`. The automated audit
+checks the precommitted seed split, loss, response, call budget, candidate
+population, evidence schedule, and validation design. Compared with published
+results, this campaign uses fewer true-model calls than A-bPCE (95 versus 129)
+but has slightly higher error against the independent RQMC reference (2.310%
+versus 1.872%); the published ABSVR1/2 estimates remain more efficient and
+more accurate on this benchmark.
 
 ## Direct UQLab comparator
 

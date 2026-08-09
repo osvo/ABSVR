@@ -13,6 +13,69 @@ import numpy as np
 from scipy import stats
 
 
+def audit_frozen_protocol(
+    campaign: dict[str, Any], frozen: dict[str, Any]
+) -> dict[str, Any]:
+    """Verify that a completed campaign matches its precommitted protocol."""
+
+    if frozen.get("status") != "frozen_before_confirmation":
+        raise ValueError("Protocol was not frozen before confirmation.")
+    runs = list(campaign["runs"])
+    run_seeds = [int(run["algorithm_seed"]) for run in runs]
+    expected_seeds = [int(seed) for seed in frozen["confirmation_algorithm_seeds"]]
+    if run_seeds != expected_seeds:
+        raise ValueError("Campaign seeds do not match the frozen confirmation seeds.")
+    development_seeds = [int(seed) for seed in frozen["development_algorithm_seeds"]]
+    if campaign.get("development_algorithm_seeds") != development_seeds:
+        raise ValueError("Campaign development seeds do not match the frozen protocol.")
+    if set(run_seeds) & set(development_seeds):
+        raise ValueError("Frozen development and confirmation seeds overlap.")
+
+    expected = frozen["configuration"]
+    actual = campaign["training_protocol"]
+    comparisons = {
+        "svr_loss": actual["svr_loss"],
+        "initial_design": actual["initial_design"],
+        "response": actual["response"],
+        "response_preserves_original_failure_event": actual[
+            "response_preserves_original_failure_event"
+        ],
+        "added_points": int(actual["added_points"]),
+        "candidate_pool_size": int(actual["candidate_pool_size"]),
+        "hyperparameter_selection": actual["hyperparameter_selection"],
+        "hyperparameter_retune_interval": int(actual["hyperparameter_retune_interval"]),
+    }
+    for key, value in comparisons.items():
+        if value != expected[key]:
+            raise ValueError(f"Campaign {key} does not match the frozen protocol.")
+    if any(float(run["gradient_weight"]) != float(expected["gradient_weight"]) for run in runs):
+        raise ValueError("Campaign gradient weight does not match the frozen protocol.")
+    if any(run["svr_loss"] != expected["svr_loss"] for run in runs):
+        raise ValueError("Campaign run loss does not match the frozen protocol.")
+    if any(
+        int(run["open_sees_limit_state_calls"])
+        != int(expected["total_opensees_calls_per_run"])
+        for run in runs
+    ):
+        raise ValueError("Campaign call count does not match the frozen protocol.")
+
+    validation = campaign["validation_protocol"]
+    frozen_validation = frozen["validation"]
+    if int(validation["replications"]) != int(frozen_validation["replications"]):
+        raise ValueError("Validation replications do not match the frozen protocol.")
+    if 1 << int(validation["log2_samples"]) != int(
+        frozen_validation["samples_per_replication"]
+    ):
+        raise ValueError("Validation sample size does not match the frozen protocol.")
+    if int(validation["base_seed"]) != int(frozen_validation["base_seed"]):
+        raise ValueError("Validation seed does not match the frozen protocol.")
+    return {
+        "frozen_protocol_passed": True,
+        "frozen_algorithm_commit": frozen["frozen_algorithm_commit"],
+        "confirmation_seed_count": len(expected_seeds),
+    }
+
+
 def audit_campaign(campaign: dict[str, Any], reference: dict[str, Any]) -> dict[str, Any]:
     """Validate protocol invariants and return aggregate reliability metrics."""
 
@@ -189,7 +252,12 @@ def main() -> None:
     parser.add_argument(
         "--campaign",
         type=Path,
-        default=Path("results/planar_truss/confirmation_campaign.json"),
+        default=Path("results/planar_truss/confirmation_campaign_v2.json"),
+    )
+    parser.add_argument(
+        "--frozen-protocol",
+        type=Path,
+        default=Path("studies/planar_truss/confirmation_protocol_v2.json"),
     )
     parser.add_argument(
         "--reference",
@@ -204,17 +272,19 @@ def main() -> None:
     parser.add_argument(
         "--audit-output",
         type=Path,
-        default=Path("results/planar_truss/campaign_audit.json"),
+        default=Path("results/planar_truss/campaign_audit_v2.json"),
     )
     parser.add_argument(
         "--comparison-output",
         type=Path,
-        default=Path("results/planar_truss/comparison_table.csv"),
+        default=Path("results/planar_truss/comparison_table_v2.csv"),
     )
     args = parser.parse_args()
     campaign = json.loads(args.campaign.read_text(encoding="utf-8"))
+    frozen_protocol = json.loads(args.frozen_protocol.read_text(encoding="utf-8"))
     reference = json.loads(args.reference.read_text(encoding="utf-8"))
     audit = audit_campaign(campaign, reference)
+    audit.update(audit_frozen_protocol(campaign, frozen_protocol))
     rows = build_comparison_rows(args.literature, audit)
 
     args.audit_output.parent.mkdir(parents=True, exist_ok=True)
