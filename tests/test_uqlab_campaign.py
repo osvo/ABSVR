@@ -10,6 +10,7 @@ import pytest
 from studies.planar_truss.run_uqlab_campaign import (
     DEFAULT_SEEDS,
     _log_path,
+    build_parser,
     summarize_results,
 )
 
@@ -40,6 +41,9 @@ def test_summary_uses_every_frozen_seed_and_true_call_ledger() -> None:
     assert summary["maximum_open_sees_calls"] == 109
     assert summary["total_open_sees_calls"] == 200
     assert summary["selection_uses_reference_probability"] is False
+    lower, upper = summary["mean_pf_student_t_95_percent_interval_across_seeds"]
+    assert (lower + upper) / 2.0 == pytest.approx(0.0015)
+    assert lower < 0.0014 < 0.0016 < upper
 
 
 def test_summary_refuses_missing_or_reordered_seed() -> None:
@@ -81,6 +85,20 @@ def test_summary_refuses_invalid_failure_probability(pf: float) -> None:
         )
 
 
+@pytest.mark.parametrize("pf", [0.0, 1.0])
+def test_native_akmcs_summary_refuses_degenerate_probability(pf: float) -> None:
+    result = _result(11, pf, 31)
+    result["profile"] = "original_akmcs"
+    with pytest.raises(ValueError, match="non-degenerate"):
+        summarize_results(
+            [result],
+            seeds=(11,),
+            profile="original_akmcs",
+            reference_pf=0.0015,
+            published_pf=0.00152,
+        )
+
+
 def test_original_profile_uses_uqlab_native_akmcs_stop_u() -> None:
     wrapper = (
         Path(__file__).parents[1]
@@ -113,3 +131,8 @@ def test_matlab_log_path_is_unique_per_profile_and_seed(tmp_path: Path) -> None:
     assert _log_path(tmp_path, "original_akmcs", 163) == (
         tmp_path / "uqlab_original_akmcs_seed_163_matlab.log"
     )
+
+
+def test_native_akmcs_is_the_safe_command_line_default() -> None:
+    args = build_parser().parse_args(["--uqlab-core", "C:/UQLab/core"])
+    assert args.profile == "original_akmcs"

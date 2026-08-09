@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import pytest
 
-from studies.planar_truss.audit_campaign import audit_campaign, audit_frozen_protocol
+from studies.planar_truss.audit_campaign import (
+    audit_campaign,
+    audit_frozen_protocol,
+    audit_uqlab_confirmation,
+)
 
 
 def _campaign() -> dict:
@@ -118,3 +122,54 @@ def test_frozen_protocol_audit_checks_precommitted_configuration() -> None:
     campaign["runs"][0]["open_sees_limit_state_calls"] = 94
     with pytest.raises(ValueError, match="call count"):
         audit_frozen_protocol(campaign, _frozen_protocol())
+
+
+def test_uqlab_confirmation_audit_checks_native_method_and_call_ledger() -> None:
+    run = {
+        "seed": 139,
+        "profile": "original_akmcs",
+        "uqlab_reliability_method": "AKMCS",
+        "convergence": "stopU",
+        "convergence_threshold": 2.0,
+        "initial_design": {"sampling": "LHS", "size": 30},
+        "pf": 0.0015,
+        "model_evaluations_uqlab": 380,
+        "model_evaluations_opensees_ledger": 380,
+    }
+    summary = {
+        "algorithm_seeds": [139],
+        "selection_uses_reference_probability": False,
+        "selection_uses_validation_set": False,
+        "individual_runs": [run],
+        "mean_pf": 0.0015,
+        "beta_from_mean_pf": 2.9677,
+        "mean_pf_student_t_95_percent_interval_across_seeds": [0.0015, 0.0015],
+        "coefficient_of_variation_pf_across_seeds_percent": 0.0,
+        "relative_error_of_mean_vs_independent_rqmc_percent": 0.5,
+        "relative_error_of_mean_vs_published_mcs_percent": 1.0,
+        "mean_absolute_run_error_vs_independent_rqmc_percent": 0.5,
+        "median_absolute_run_error_vs_independent_rqmc_percent": 0.5,
+        "maximum_absolute_run_error_vs_independent_rqmc_percent": 0.5,
+        "mean_open_sees_calls": 380.0,
+        "minimum_open_sees_calls": 380,
+        "maximum_open_sees_calls": 380,
+        "total_open_sees_calls": 380,
+    }
+    frozen = {
+        "status": "frozen_before_confirmation",
+        "algorithm_seeds": [139],
+        "development_seed_excluded": 127,
+        "runs_expected": 1,
+        "profile": "original_akmcs",
+        "uqlab_reliability_method": "AKMCS",
+        "convergence": {"criterion": "stopU", "threshold": 2.0},
+        "initial_design": {"sampling": "LHS", "size": 30},
+    }
+
+    result = audit_uqlab_confirmation(summary, frozen)
+    assert result["audit_passed"] is True
+    assert result["mean_open_sees_calls"] == 380.0
+
+    run["model_evaluations_opensees_ledger"] = 379
+    with pytest.raises(ValueError, match="ledgers disagree"):
+        audit_uqlab_confirmation(summary, frozen)

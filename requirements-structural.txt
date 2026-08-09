@@ -1,4 +1,5 @@
 -r requirements.txt
+matplotlib==3.11.1
 
 # OpenSeesPy 3.8 requires Python 3.12. Version 3.6.0.3 is pinned for the
 # Python 3.10-3.11 range because the 3.7.0.3 Windows binary does not load

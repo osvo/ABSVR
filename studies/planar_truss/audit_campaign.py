@@ -200,9 +200,97 @@ def audit_campaign(campaign: dict[str, Any], reference: dict[str, Any]) -> dict[
     }
 
 
+def audit_uqlab_confirmation(
+    summary: dict[str, Any], frozen: dict[str, Any]
+) -> dict[str, Any]:
+    """Validate the direct native-UQLab confirmation against its frozen protocol."""
+
+    if frozen.get("status") != "frozen_before_confirmation":
+        raise ValueError("UQLab protocol was not frozen before confirmation.")
+    expected_seeds = [int(seed) for seed in frozen["algorithm_seeds"]]
+    if [int(seed) for seed in summary["algorithm_seeds"]] != expected_seeds:
+        raise ValueError("UQLab seeds do not match the frozen protocol.")
+    if int(frozen["development_seed_excluded"]) in expected_seeds:
+        raise ValueError("UQLab development seed appears in confirmation.")
+    if summary.get("selection_uses_reference_probability") is not False:
+        raise ValueError("UQLab confirmation must be blind to the reference probability.")
+    if summary.get("selection_uses_validation_set") is not False:
+        raise ValueError("UQLab confirmation must be blind to validation data.")
+
+    runs = list(summary["individual_runs"])
+    if len(runs) != int(frozen["runs_expected"]):
+        raise ValueError("UQLab confirmation run count does not match the protocol.")
+    if [int(run["seed"]) for run in runs] != expected_seeds:
+        raise ValueError("UQLab individual runs are missing or reordered.")
+    for run in runs:
+        if run.get("profile") != frozen["profile"]:
+            raise ValueError("UQLab run profile does not match the frozen protocol.")
+        if run.get("uqlab_reliability_method") != frozen["uqlab_reliability_method"]:
+            raise ValueError("UQLab run did not use the native AKMCS method.")
+        if run.get("convergence") != frozen["convergence"]["criterion"]:
+            raise ValueError("UQLab run did not use the frozen stopU criterion.")
+        if float(run["convergence_threshold"]) != float(
+            frozen["convergence"]["threshold"]
+        ):
+            raise ValueError("UQLab run stopU threshold does not match the protocol.")
+        if run.get("initial_design") != frozen["initial_design"]:
+            raise ValueError("UQLab run initial design does not match the protocol.")
+        if not 0.0 < float(run["pf"]) < 1.0:
+            raise ValueError("UQLab confirmation contains a degenerate probability.")
+        if int(run["model_evaluations_uqlab"]) != int(
+            run["model_evaluations_opensees_ledger"]
+        ):
+            raise ValueError("UQLab and OpenSees call ledgers disagree.")
+
+    estimates = np.array([run["pf"] for run in runs], dtype=float)
+    calls = np.array(
+        [run["model_evaluations_opensees_ledger"] for run in runs], dtype=int
+    )
+    if not np.isclose(float(summary["mean_pf"]), np.mean(estimates), rtol=0.0, atol=1e-15):
+        raise ValueError("UQLab aggregate failure probability is inconsistent.")
+    if not np.isclose(
+        float(summary["mean_open_sees_calls"]), np.mean(calls), rtol=0.0, atol=1e-12
+    ):
+        raise ValueError("UQLab aggregate call count is inconsistent.")
+    return {
+        "audit_passed": True,
+        "frozen_protocol_passed": True,
+        "algorithm_seeds": expected_seeds,
+        "runs": len(runs),
+        "mean_pf": float(summary["mean_pf"]),
+        "beta_from_mean_pf": float(summary["beta_from_mean_pf"]),
+        "t_interval_95_for_mean_across_algorithm_seeds": summary[
+            "mean_pf_student_t_95_percent_interval_across_seeds"
+        ],
+        "coefficient_of_variation_across_algorithm_seeds_percent": float(
+            summary["coefficient_of_variation_pf_across_seeds_percent"]
+        ),
+        "relative_error_of_mean_vs_independent_rqmc_percent": float(
+            summary["relative_error_of_mean_vs_independent_rqmc_percent"]
+        ),
+        "relative_error_of_mean_vs_published_mcs_percent": float(
+            summary["relative_error_of_mean_vs_published_mcs_percent"]
+        ),
+        "mean_absolute_run_error_vs_independent_rqmc_percent": float(
+            summary["mean_absolute_run_error_vs_independent_rqmc_percent"]
+        ),
+        "median_absolute_run_error_vs_independent_rqmc_percent": float(
+            summary["median_absolute_run_error_vs_independent_rqmc_percent"]
+        ),
+        "maximum_absolute_run_error_vs_independent_rqmc_percent": float(
+            summary["maximum_absolute_run_error_vs_independent_rqmc_percent"]
+        ),
+        "mean_open_sees_calls": float(summary["mean_open_sees_calls"]),
+        "minimum_open_sees_calls": int(summary["minimum_open_sees_calls"]),
+        "maximum_open_sees_calls": int(summary["maximum_open_sees_calls"]),
+        "total_open_sees_calls": int(summary["total_open_sees_calls"]),
+    }
+
+
 def build_comparison_rows(
     literature_path: Path,
     audit: dict[str, Any],
+    uqlab_audit: dict[str, Any] | None = None,
 ) -> list[dict[str, str | float]]:
     """Append this study to the immutable literature comparison data."""
 
@@ -244,6 +332,23 @@ def build_comparison_rows(
             "source": "This study",
         }
     )
+    if uqlab_audit is not None:
+        rows.append(
+            {
+                "method": "UQLab native AK-MCS (this study, mean)",
+                "pf": uqlab_audit["mean_pf"],
+                "beta": uqlab_audit["beta_from_mean_pf"],
+                "mean_model_evaluations": uqlab_audit["mean_open_sees_calls"],
+                "relative_error_vs_published_mcs_percent": uqlab_audit[
+                    "relative_error_of_mean_vs_published_mcs_percent"
+                ],
+                "relative_error_vs_independent_rqmc_percent": uqlab_audit[
+                    "relative_error_of_mean_vs_independent_rqmc_percent"
+                ],
+                "runs": uqlab_audit["runs"],
+                "source": "This study; direct UQLab 2.1.0 replication",
+            }
+        )
     return rows
 
 
@@ -270,14 +375,24 @@ def main() -> None:
         default=Path("studies/planar_truss/literature_results.csv"),
     )
     parser.add_argument(
+        "--uqlab-summary",
+        type=Path,
+        default=Path("results/planar_truss/uqlab_confirmation/campaign_summary.json"),
+    )
+    parser.add_argument(
+        "--uqlab-frozen-protocol",
+        type=Path,
+        default=Path("studies/planar_truss/uqlab_confirmation_protocol.json"),
+    )
+    parser.add_argument(
         "--audit-output",
         type=Path,
-        default=Path("results/planar_truss/campaign_audit_v2.json"),
+        default=Path("results/planar_truss/comparison_audit_v3.json"),
     )
     parser.add_argument(
         "--comparison-output",
         type=Path,
-        default=Path("results/planar_truss/comparison_table_v2.csv"),
+        default=Path("results/planar_truss/comparison_table_v3.csv"),
     )
     args = parser.parse_args()
     campaign = json.loads(args.campaign.read_text(encoding="utf-8"))
@@ -285,16 +400,36 @@ def main() -> None:
     reference = json.loads(args.reference.read_text(encoding="utf-8"))
     audit = audit_campaign(campaign, reference)
     audit.update(audit_frozen_protocol(campaign, frozen_protocol))
-    rows = build_comparison_rows(args.literature, audit)
+    uqlab_summary = json.loads(args.uqlab_summary.read_text(encoding="utf-8"))
+    uqlab_frozen = json.loads(args.uqlab_frozen_protocol.read_text(encoding="utf-8"))
+    uqlab_audit = audit_uqlab_confirmation(uqlab_summary, uqlab_frozen)
+    rows = build_comparison_rows(args.literature, audit, uqlab_audit)
+    combined_audit = {
+        "audit_passed": True,
+        "absvr": audit,
+        "uqlab_native_akmcs": uqlab_audit,
+        "comparison": {
+            "absvr_call_reduction_vs_uqlab_percent": float(
+                100.0
+                * (1.0 - audit["fixed_open_sees_calls_per_run"] / uqlab_audit["mean_open_sees_calls"])
+            ),
+            "absvr_to_uqlab_mean_absolute_run_error_ratio": float(
+                audit["mean_absolute_run_error_vs_independent_rqmc_percent"]
+                / uqlab_audit["mean_absolute_run_error_vs_independent_rqmc_percent"]
+            ),
+        },
+    }
 
     args.audit_output.parent.mkdir(parents=True, exist_ok=True)
-    args.audit_output.write_text(json.dumps(audit, indent=2) + "\n", encoding="utf-8")
+    args.audit_output.write_text(
+        json.dumps(combined_audit, indent=2) + "\n", encoding="utf-8"
+    )
     args.comparison_output.parent.mkdir(parents=True, exist_ok=True)
     with args.comparison_output.open("w", newline="", encoding="utf-8") as stream:
         writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
         writer.writeheader()
         writer.writerows(rows)
-    print(json.dumps(audit, indent=2))
+    print(json.dumps(combined_audit, indent=2))
 
 
 if __name__ == "__main__":

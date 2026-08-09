@@ -12,6 +12,7 @@ from statistics import NormalDist
 from typing import Any, Sequence
 
 import numpy as np
+from scipy import stats
 
 
 DEFAULT_SEEDS = (139, 151, 163, 179, 191, 211, 223, 239, 251, 269)
@@ -89,6 +90,23 @@ def _load_completed_result(path: Path, *, profile: str, seed: int) -> dict[str, 
         result["model_evaluations_opensees_ledger"]
     ):
         raise ValueError(f"UQLab/OpenSees call-count mismatch in {path}")
+    if profile == "original_akmcs":
+        expected = {
+            "uqlab_reliability_method": "AKMCS",
+            "convergence": "stopU",
+            "learning_function": "U",
+            "kriging_covariance": "Gaussian",
+            "internal_mcs_size": 1_000_000,
+        }
+        for key, value in expected.items():
+            if result.get(key) != value:
+                raise ValueError(
+                    f"Native AK-MCS metadata mismatch for {key!r} in {path}"
+                )
+        if result.get("initial_design") != {"sampling": "LHS", "size": 30}:
+            raise ValueError(f"Native AK-MCS initial-design mismatch in {path}")
+        if float(result.get("convergence_threshold", float("nan"))) != 2.0:
+            raise ValueError(f"Native AK-MCS stopU threshold mismatch in {path}")
     return result
 
 
@@ -111,6 +129,8 @@ def summarize_results(
     estimates = np.array([result["pf"] for result in results], dtype=float)
     if not np.all(np.isfinite(estimates)) or np.any((estimates < 0.0) | (estimates > 1.0)):
         raise ValueError("Every failure-probability estimate must be finite and in [0, 1].")
+    if profile == "original_akmcs" and np.any((estimates == 0.0) | (estimates == 1.0)):
+        raise ValueError("A native AK-MCS confirmation probability must be non-degenerate.")
     calls = np.array(
         [result["model_evaluations_opensees_ledger"] for result in results],
         dtype=int,
@@ -120,19 +140,40 @@ def summarize_results(
     beta_from_mean_pf = (
         -NormalDist().inv_cdf(mean_pf) if 0.0 < mean_pf < 1.0 else None
     )
+    if len(results) > 1:
+        confidence_interval = stats.t.interval(
+            0.95,
+            df=len(results) - 1,
+            loc=mean_pf,
+            scale=stats.sem(estimates),
+        )
+    else:
+        confidence_interval = (mean_pf, mean_pf)
+    standard_deviation = (
+        float(np.std(estimates, ddof=1)) if len(results) > 1 else 0.0
+    )
     return {
         "schema_version": 1,
-        "method": "direct UQLab ALR / AK-MCS with OpenSeesPy",
+        "method": (
+            "direct UQLab native AK-MCS with OpenSeesPy"
+            if profile == "original_akmcs"
+            else "direct UQLab ALR with OpenSeesPy"
+        ),
         "profile": profile,
         "selection_uses_reference_probability": False,
         "selection_uses_validation_set": False,
         "algorithm_seeds": list(seeds),
         "runs": len(results),
         "mean_pf": mean_pf,
+        "mean_pf_student_t_95_percent_interval_across_seeds": [
+            float(confidence_interval[0]),
+            float(confidence_interval[1]),
+        ],
         "beta_from_mean_pf": beta_from_mean_pf,
         "beta_from_mean_pf_is_infinite": mean_pf in (0.0, 1.0),
-        "standard_deviation_pf_across_seeds": (
-            float(np.std(estimates, ddof=1)) if len(results) > 1 else 0.0
+        "standard_deviation_pf_across_seeds": standard_deviation,
+        "coefficient_of_variation_pf_across_seeds_percent": (
+            float(100.0 * standard_deviation / mean_pf) if mean_pf > 0.0 else None
         ),
         "relative_error_of_mean_vs_independent_rqmc_percent": float(
             100.0 * abs(mean_pf - reference_pf) / reference_pf
@@ -166,7 +207,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--profile",
         choices=("paper_like", "original_akmcs"),
-        default="paper_like",
+        default="original_akmcs",
     )
     parser.add_argument(
         "--seeds",

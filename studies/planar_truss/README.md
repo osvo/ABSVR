@@ -104,16 +104,27 @@ more accurate on this benchmark.
 
 ## Direct UQLab comparator
 
-The `uqlab/` directory contains a direct UQLab ALR/AK-MCS configuration whose
+The `uqlab/` directory contains direct UQLab reliability configurations whose
 true model evaluations are sent to the same OpenSeesPy implementation through
 a tested CSV bridge. Each run has an independent OpenSees call ledger, and the
 runner rejects any disagreement with UQLab's own `ModelEvaluations` count.
 
-See `uqlab/README.md` for installation and execution. The default local profile
-matches the published marginals, initial size, Gaussian Kriging covariance,
-internal MCS size, and 10% failure-probability-bound stopping rule. It uses a
-fully disclosed LHS because the 2018 paper does not specify enough detail to
-reconstruct its uniform-in-a-ball initial design exactly. It is therefore
-reported as a direct paper-like UQLab baseline, not as an exact reproduction of
-the published AK-MCS realization. A-bPCE remains a published external
-comparator rather than a modification of ABSVR.
+See `uqlab/README.md` for installation and execution. The confirmed comparator
+uses UQLab 2.1.0's native `AKMCS` method, Gaussian Kriging, the U learning
+function, and its original `min(U) >= 2` stopping rule. Ten algorithm seeds were
+committed before confirmation; the development seed was excluded. Every run
+uses 30 initial LHS points and an internal MCS population of one million.
+
+The confirmed UQLab mean is `Pf = 1.52560e-3`, with 1.151% relative error
+against the independent RQMC reference. It requires 383.4 OpenSees calls on
+average (range 334--409). ABSVR's confirmed mean uses 95 calls, a 75.222%
+reduction, while its mean absolute per-run error is only 6.223% higher than the
+direct UQLab comparator (2.641% versus 2.487%). The separate 95% intervals
+across algorithm seeds are recorded in `comparison_audit_v3.json`.
+
+This is a direct, reproducible UQLab comparison on the same solver and
+probabilistic model, not an exact reproduction of the single published AK-MCS
+realization: the 2018 paper does not specify enough information to reconstruct
+its uniform-in-a-ball initial design, so the local campaign uses a disclosed
+LHS. A-bPCE remains a published external comparator from a different surrogate
+family, not a modification of ABSVR.

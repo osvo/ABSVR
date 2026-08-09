@@ -35,7 +35,7 @@ addpath(fullfile(pwd, 'studies', 'planar_truss', 'uqlab'))
 run_uqlab_akmcs(11)
 ```
 
-The default `paper_like` profile explicitly uses:
+The development-only `paper_like` profile explicitly uses:
 
 - physical lognormal and Gumbel marginals from the published truss;
 - 30 initial LHS points;
@@ -50,6 +50,11 @@ ball uniquely. Consequently, this is a direct, disclosed UQLab baseline and a
 paper-like reconstruction, not an exact repetition of the reported 300-call
 AK-MCS realization. The published AK-MCS and A-bPCE values remain separate in
 `../literature_results.csv`.
+
+That profile is not used for confirmation: a seed-127 precheck stopped after
+only one adaptive point with `Pf = 0`. The degenerate result is retained under
+`results/planar_truss/uqlab_precheck/` and marked rejected in
+`uqlab_precheck_decisions.json`.
 
 For UQLab's native implementation of the original AK-MCS
 `min(U) >= 2` stopping condition, use:
@@ -66,11 +71,12 @@ Each run writes a JSON summary, a MATLAB result file, and the OpenSees call
 ledger under `results/planar_truss/`. Record all seeds before starting a
 confirmation campaign; never select or discard runs based on their error.
 
-For the frozen ten-seed campaign, run from the repository root:
+For the frozen ten-seed native-AK-MCS campaign, run from the repository root:
 
 ```bash
 python -m studies.planar_truss.run_uqlab_campaign \
-  --uqlab-core C:\path\to\UQLab\core --resume
+  --uqlab-core C:\path\to\UQLab\core \
+  --output-directory results/planar_truss/uqlab_confirmation --resume
 ```
 
 The Python orchestrator starts an independent MATLAB process for each declared

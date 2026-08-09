@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "method": "UQLab AKMCS / AK-MCS",
+  "uqlab_reliability_method": "AKMCS",
+  "profile": "original_akmcs",
+  "seed": 211,
+  "pf": 0.00153,
+  "beta": 2.9616453743387945,
+  "cov": 0.025545934534517034,
+  "pf_ci": [
+    0.0014533942591922206,
+    0.0016066057408077792
+  ],
+  "beta_ci": [
+    2.946568589632022,
+    2.9774270064001
+  ],
+  "model_evaluations_uqlab": 409,
+  "model_evaluations_opensees_ledger": 409,
+  "input_order": [
+    "A1",
+    "A2",
+    "E1",
+    "E2",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6"
+  ],
+  "initial_design": {
+    "sampling": "LHS",
+    "size": 30
+  },
+  "internal_mcs_size": 1.0E+6,
+  "kriging_covariance": "Gaussian",
+  "learning_function": "U",
+  "convergence": "stopU",
+  "convergence_threshold": 2,
+  "convergence_iterations": 1,
+  "max_candidate_size": 1.0E+6,
+  "matlab_release": "2025b",
+  "matlab_version": "25.2.0.3123386 (R2025b) Update 3",
+  "uqlab_entrypoint": "C:\\Users\\osvo\\Documents\\Codex\\2026-08-08\\us\\work\\UQLab_Rel2.1.0\\core\\uqlab.m",
+  "ledger_file": "C:\\Users\\osvo\\Documents\\Codex\\2026-08-08\\us\\work\\ABSVR-benchmark\\results\\planar_truss\\uqlab_confirmation\\uqlab_original_akmcs_seed_211_calls.jsonl",
+  "comparability_note": "Direct UQLab run with the published probabilistic model and OpenSees. The 2018 initial design was sampled uniformly in an insufficiently specified ball; this local run uses a disclosed LHS and is paper-like, not an exact reproduction of the published run."
+}

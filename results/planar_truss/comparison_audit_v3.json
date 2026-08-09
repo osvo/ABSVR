@@ -1,0 +1,96 @@
+{
+  "audit_passed": true,
+  "absvr": {
+    "audit_passed": true,
+    "algorithm_seeds": [
+      127,
+      139,
+      151,
+      163,
+      179,
+      191,
+      211,
+      223,
+      239,
+      251
+    ],
+    "runs": 10,
+    "fixed_open_sees_calls_per_run": 95,
+    "total_open_sees_calls": 950,
+    "candidate_pool_size": 131072,
+    "evidence_schedule": [
+      15,
+      35,
+      55,
+      75,
+      95
+    ],
+    "mean_pf": 0.001473402976989746,
+    "beta_from_mean_pf": 2.9732330690916813,
+    "standard_deviation_pf_across_algorithm_seeds": 4.5752001443487194e-05,
+    "coefficient_of_variation_across_algorithm_seeds_percent": 3.1051926837396095,
+    "t_interval_95_for_mean_across_algorithm_seeds": [
+      0.0014406739667959954,
+      0.0015061319871834966
+    ],
+    "relative_error_of_mean_vs_independent_rqmc_percent": 2.309516282010755,
+    "relative_error_of_mean_vs_published_mcs_percent": 3.065593619095663,
+    "mean_absolute_run_error_vs_independent_rqmc_percent": 2.6414796079671197,
+    "median_absolute_run_error_vs_independent_rqmc_percent": 1.5491621877963957,
+    "maximum_absolute_run_error_vs_independent_rqmc_percent": 7.66677205184951,
+    "pooled_confusion_counts": {
+      "true_positive": 59683,
+      "false_positive": 2116,
+      "false_negative": 3737,
+      "true_negative": 41877504
+    },
+    "pooled_sensitivity": 0.9410753705455692,
+    "pooled_precision": 0.9657599637534587,
+    "independent_rqmc_reference_pf": 0.0015082359313964844,
+    "independent_rqmc_confidence_interval_95": [
+      0.0015022002354417054,
+      0.0015142716273512634
+    ],
+    "published_direct_mcs_reference_pf": 0.00152,
+    "frozen_protocol_passed": true,
+    "frozen_algorithm_commit": "9b94637",
+    "confirmation_seed_count": 10
+  },
+  "uqlab_native_akmcs": {
+    "audit_passed": true,
+    "frozen_protocol_passed": true,
+    "algorithm_seeds": [
+      139,
+      151,
+      163,
+      179,
+      191,
+      211,
+      223,
+      239,
+      251,
+      269
+    ],
+    "runs": 10,
+    "mean_pf": 0.0015256,
+    "beta_from_mean_pf": 2.9625320929118,
+    "t_interval_95_for_mean_across_algorithm_seeds": [
+      0.0014977322803374229,
+      0.0015534677196625771
+    ],
+    "coefficient_of_variation_across_algorithm_seeds_percent": 2.553512445551145,
+    "relative_error_of_mean_vs_independent_rqmc_percent": 1.1512833133101488,
+    "relative_error_of_mean_vs_published_mcs_percent": 0.3684210526315736,
+    "mean_absolute_run_error_vs_independent_rqmc_percent": 2.486721517546632,
+    "median_absolute_run_error_vs_independent_rqmc_percent": 2.618953651596588,
+    "maximum_absolute_run_error_vs_independent_rqmc_percent": 3.962514574770784,
+    "mean_open_sees_calls": 383.4,
+    "minimum_open_sees_calls": 334,
+    "maximum_open_sees_calls": 409,
+    "total_open_sees_calls": 3834
+  },
+  "comparison": {
+    "absvr_call_reduction_vs_uqlab_percent": 75.22170057381325,
+    "absvr_to_uqlab_mean_absolute_run_error_ratio": 1.0622337842530796
+  }
+}
