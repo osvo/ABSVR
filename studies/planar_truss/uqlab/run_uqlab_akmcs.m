@@ -154,11 +154,15 @@ function total = countLedgerEvaluations(ledgerFile)
         return
     end
     text = fileread(ledgerFile);
-    lines = splitlines(strtrim(text));
+    % REGEXP returns a cell array for character input across supported MATLAB
+    % releases. SPLITLINES changed its output container semantics, which made
+    % JSONDECODE receive a cell instead of a scalar string in R2025b.
+    lines = regexp(strtrim(text), '\r\n|\n|\r', 'split');
     total = 0;
     for index = 1:numel(lines)
-        if strlength(lines(index)) > 0
-            entry = jsondecode(lines(index));
+        line = strtrim(lines{index});
+        if ~isempty(line)
+            entry = jsondecode(line);
             total = total + entry.evaluations;
         end
     end
