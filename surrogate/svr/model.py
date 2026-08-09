@@ -96,17 +96,14 @@ def _svr_likelihood(hyp: np.ndarray, par: dict, covariance: str) -> float:
     idx = np.where(np.abs(delta) > epsilon)[0]
     if idx.size:
         loss = np.abs(delta[idx]) - epsilon
-        loss_sum = float(0.5 * np.sum(loss**2))
+        loss_sum = float(np.sum(loss))
     else:
         loss_sum = 0.0
 
     sv = model["SV"]
     if sv.size:
-        # Wang et al. (2021), Eq. (14): L = I + C Lambda K.  Restricting
-        # Lambda to the active support-vector set gives this determinant.
-        active_kernel = kernel[np.ix_(sv, sv)]
-        evidence_curvature = np.eye(sv.size) + C * active_kernel
-        sign, logdet = np.linalg.slogdet(evidence_curvature)
+        active_regularized_kernel = kernel1[np.ix_(sv, sv)]
+        sign, logdet = np.linalg.slogdet(active_regularized_kernel)
         if sign <= 0:
             logdet = np.log(np.finfo(float).tiny)
     else:
@@ -117,7 +114,7 @@ def _svr_likelihood(hyp: np.ndarray, par: dict, covariance: str) -> float:
     term1 = 0.5 * parameter @ (kernel @ parameter)
     term2 = C * loss_sum
     term3 = kernel.shape[0] * math.log(math.sqrt(2.0 * math.pi / C) + 2.0 * epsilon)
-    term4 = 0.5 * logdet
+    term4 = 0.5 * (numsv * math.log(C) + logdet)
     return term1 + term2 + term3 + term4
 
 

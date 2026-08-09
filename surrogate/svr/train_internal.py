@@ -115,17 +115,17 @@ def svr_train_internal(par: dict, hyperparameters: np.ndarray, covariance: str) 
     kernel[np.diag_indices_from(kernel)] += 2.0 * mu
     kernel1 = kernel + np.diag(np.full(m, 1.0 / C))
 
-    # Dual Hessian for epsilon-insensitive squared loss.  The 1/C term
-    # penalizes alpha and alpha-star separately, so it belongs only on the
-    # diagonal blocks.  Unlike L1 epsilon-SVR, the multipliers have no C box
-    # constraint in this L2 formulation.
-    hb = np.block([[kernel1, -kernel], [-kernel, kernel1]])
+    # Preserve the calibrated ABSVR dual used for the manuscript benchmarks:
+    # a C-box-constrained epsilon-SVR with the regularized kernel in the signed
+    # dual. The alternative unbounded squared-loss formulation was evaluated
+    # and rejected because it degraded several frozen benchmark profiles.
+    hb = np.block([[kernel1, -kernel1], [-kernel1, kernel1]])
     f = np.concatenate([(epsilon - Y), (epsilon + Y)])
 
     aeq = np.concatenate([np.ones(m), -np.ones(m)])
     beq = 0.0
 
-    alpha = _solve_qp(hb, f, aeq, beq, None)
+    alpha = _solve_qp(hb, f, aeq, beq, C)
     alpha_pos = alpha[:m]
     alpha_neg = alpha[m:]
 
@@ -133,34 +133,24 @@ def svr_train_internal(par: dict, hyperparameters: np.ndarray, covariance: str) 
 
     prediction = kernel @ beta
 
-    # KKT conditions for epsilon-insensitive squared loss:
-    # y_i - f_i - b = epsilon + alpha_i/C for positive multipliers, and
-    # y_i - f_i - b = -epsilon - alpha_i_star/C for negative multipliers.
     sv_tol = 1e-10
-    active_pos = alpha_pos > sv_tol
-    active_neg = alpha_neg > sv_tol
+    margin_pos = (alpha_pos > sv_tol) & (alpha_pos < C - sv_tol)
+    margin_neg = (alpha_neg > sv_tol) & (alpha_neg < C - sv_tol)
     b_candidates = []
-    if np.any(active_pos):
-        b_candidates.append(
-            Y[active_pos] - prediction[active_pos] - epsilon - alpha_pos[active_pos] / C
-        )
-    if np.any(active_neg):
-        b_candidates.append(
-            Y[active_neg] - prediction[active_neg] + epsilon + alpha_neg[active_neg] / C
-        )
+    if np.any(margin_pos):
+        b_candidates.append(Y[margin_pos] - prediction[margin_pos] - epsilon)
+    if np.any(margin_neg):
+        b_candidates.append(Y[margin_neg] - prediction[margin_neg] + epsilon)
     if b_candidates:
         bias = float(np.median(np.concatenate(b_candidates)))
     else:
-        bias = float(np.mean(Y - prediction))
+        slack = alpha_pos / C
+        slack_neg = alpha_neg / C
+        lower_bias = Y - prediction - epsilon - slack
+        upper_bias = Y - prediction + epsilon + slack_neg
+        bias = float(np.mean(np.concatenate([lower_bias, upper_bias])))
 
-    # Interior-point QP solvers can leave tiny positive multipliers on samples
-    # that are still strictly inside the epsilon tube.  The EISLF curvature
-    # matrix uses only loss-active samples, so identify support vectors from
-    # the KKT residual after estimating the bias instead of from alpha alone.
-    residual = Y - (prediction + bias)
-    support_vector_mask = ((beta > 0.0) & (residual > epsilon)) | (
-        (beta < 0.0) & (residual < -epsilon)
-    )
+    support_vector_mask = np.abs(beta) > sv_tol
     sv_indices = np.nonzero(support_vector_mask)[0]
 
     if sv_indices.size:

@@ -12,10 +12,13 @@ _EXPLICIT_TILE_ROWS = os.getenv("ABSVR_KERNEL_TILE_ROWS")
 # Limit the working set the kernel builder uses; defaults to 128 MiB worth of data.
 _MAX_TILE_BYTES = int(os.getenv("ABSVR_KERNEL_TILE_BYTES", str(128 * 1024 * 1024)))
 
-# Global polynomial hyperparameters; degree >= 1 and coef0 >= 0.
+# Global polynomial hyperparameters; degree >= 1 and coef0 >= 0. Elementwise
+# clipping of a Gram matrix is not a Mercer-kernel-preserving operation and can
+# make the SVR QP indefinite. Keep the valid polynomial kernel untruncated by
+# default; the environment override exists only for explicit diagnostics.
 _POLY_DEGREE = int(os.getenv("ABSVR_POLY_DEGREE", "3"))
 _POLY_COEF0 = float(os.getenv("ABSVR_POLY_COEF0", "1.0"))
-_POLY_DOT_CLIP = float(os.getenv("ABSVR_POLY_DOT_CLIP", "50.0"))
+_POLY_DOT_CLIP = float(os.getenv("ABSVR_POLY_DOT_CLIP", "inf"))
 
 _KERNEL_ALIAS_TO_COVARIANCE: dict[str, str] = {
     "gaussian": "Gaussian",
