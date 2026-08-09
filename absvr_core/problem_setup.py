@@ -15,6 +15,7 @@ try:
         modified_rastrigin,
         decision_2d,
         high_dimensional,
+        planar_truss_limit_state,
     )
 except ImportError:
     from ..benchmarks import (
@@ -24,6 +25,7 @@ except ImportError:
         modified_rastrigin,
         decision_2d,
         high_dimensional,
+        planar_truss_limit_state,
     )
 
 
@@ -33,7 +35,7 @@ def prepare_problem_definition(test_example: str, *args: int) -> tuple:
     Parameters
     ----------
     test_example : str
-        Benchmark identifier (``'eg1'`` through ``'eg6'``).
+        Benchmark identifier (``'eg1'`` through ``'eg7'``).
     *args : int
         Optional case identifier used by ``eg3``.
 
@@ -97,9 +99,17 @@ def prepare_problem_definition(test_example: str, *args: int) -> tuple:
         fun = high_dimensional
         pf_ref = 5.16e-3  # MCS-verified reference Pf
         dist_type = "lognormal"
+    elif test_example == "eg7":
+        # Published 23-bar planar truss, evaluated with OpenSeesPy.
+        n_dim = 10
+        mu = np.zeros(n_dim)
+        sigma = np.ones(n_dim)
+        fun_par = {"displacement_limit_m": 0.12, "solver": "opensees"}
+        fun = planar_truss_limit_state
+        pf_ref = 1.52e-3
     else:
         raise ValueError(
-            "Unknown test_example. Use 'eg1', 'eg2', 'eg3', 'eg4', 'eg5', or 'eg6'."
+            "Unknown test_example. Use 'eg1', 'eg2', 'eg3', 'eg4', 'eg5', 'eg6', or 'eg7'."
         )
 
     return mu, sigma, n_dim, fun_par, fun, pf_ref, dist_type

@@ -23,6 +23,12 @@ pip install -r requirements.txt
 
 Requires Python 3.10+.
 
+The finite-element benchmark has an optional OpenSeesPy dependency:
+
+```bash
+pip install -r requirements-structural.txt
+```
+
 ## Usage
 
 ```bash
@@ -31,13 +37,17 @@ python -m absvr_cli
 
 # Non-interactive
 python -m absvr_cli --benchmark eg2 --random-seed 42
+
+# Published 23-bar truss evaluated by OpenSeesPy
+python -m absvr_cli --benchmark eg7 --random-seed 42
 ```
 
 Full options: `python -m absvr_cli --help`
 
 ## Benchmarks
 
-Six structural reliability benchmarks are included for validation:
+Seven reliability benchmarks are included for validation. Example 7 is an
+implicit finite-element problem; the other six are analytical limit states.
 
 | ID  | Problem              | Dims | Inputs    | Reference Pf  |
 |-----|----------------------|------|-----------|---------------|
@@ -47,6 +57,14 @@ Six structural reliability benchmarks are included for validation:
 | eg4 | Modified Rastrigin   | 2    | Normal    | 7.296e-2      |
 | eg5 | 2D decision function | 2    | Normal    | 1.851e-3      |
 | eg6 | High-dimensional     | 40   | Lognormal | 5.080e-3      |
+| eg7 | 23-bar planar truss  | 10   | Mixed via Nataf transform | 1.520e-3 |
+
+Example 7 is the simply supported 23-bar, 13-node truss used by Schobi et al.
+(2016), Marelli and Sudret (2018), and Wang et al. (2021). Its four section
+and material variables are lognormal, its six loads are Gumbel, and failure is
+defined by a 0.12 m midspan-displacement limit. The benchmark implementation
+uses OpenSeesPy for every true limit-state call and includes an independent
+NumPy finite-element oracle for verification.
 
 Validation results (100 seeds per benchmark) are available in `results/`.
 

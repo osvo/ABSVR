@@ -83,7 +83,8 @@ _BENCHMARKS = {
     4: _BenchmarkOption("eg4", "Modified Rastrigin (2D)"),
     5: _BenchmarkOption("eg5", "Decision Function (2D)"),
     6: _BenchmarkOption("eg6", "High-Dimensional Problem (40D)"),
-    7: _BenchmarkOption("custom", "Custom Benchmark (Python module or file)"),
+    7: _BenchmarkOption("eg7", "23-Bar Planar Truss, OpenSeesPy (10D)"),
+    8: _BenchmarkOption("custom", "Custom Benchmark (Python module or file)"),
 }
 
 
@@ -123,7 +124,7 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--benchmark",
-        help="Identifier (eg1-eg6, 1-6, or custom) to execute without the interactive menu.",
+        help="Identifier (eg1-eg7, 1-7, or custom) to execute without the interactive menu.",
     )
     parser.add_argument(
         "--custom-benchmark",

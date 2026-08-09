@@ -1,0 +1,9 @@
+-r requirements.txt
+
+# OpenSeesPy 3.8 requires Python 3.12. Version 3.6.0.3 is pinned for the
+# Python 3.10-3.11 range because the 3.7.0.3 Windows binary does not load
+# under CPython 3.11 despite the wrapper package accepting that interpreter.
+openseespy==3.6.0.3; python_version < "3.12"
+openseespywin==3.6.0.3; sys_platform == "win32" and python_version < "3.12"
+openseespylinux==3.6.0.3; sys_platform == "linux" and python_version < "3.12"
+openseespy==3.8.0.0; python_version >= "3.12"
