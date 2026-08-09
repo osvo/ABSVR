@@ -672,7 +672,10 @@ def run_adaptive_svr(
 
     _maybe_checkpoint(force=True)
 
-    while num_mc < MAX_MCS_POOL_SIZE and not max_iter_reached:
+    # Always evaluate the current candidate population, including when its
+    # initial size is exactly the configured cap. The cap constrains only
+    # enrichment; it must not suppress the reliability analysis itself.
+    while not max_iter_reached:
         while True:
             total_evaluations += 1
             effective_ensemble = max(1, int(ensemble_size))
@@ -835,14 +838,18 @@ def run_adaptive_svr(
 
         # Enrich the Monte Carlo pool with additional quasi-random samples to
         # maintain exploration pressure once the coefficient of variation stalls.
+        remaining_capacity = MAX_MCS_POOL_SIZE - num_mc
+        if remaining_capacity <= 0:
+            break
+        enrichment_count = min(MCS_ENRICH_SIZE, remaining_capacity)
         enrichment_start = perf_counter()
-        additional_z = sobol_sampler.draw(MCS_ENRICH_SIZE)
+        additional_z = sobol_sampler.draw(enrichment_count)
         additional = _transform_samples(additional_z)
         mc_pool = np.vstack([mc_pool, additional])
         v_pdf_add = _compute_pdf(additional, additional_z)
         v_pdf_pool = np.concatenate([v_pdf_pool, v_pdf_add])
         num_mc = mc_pool.shape[0]
-        sobol_draw_count += MCS_ENRICH_SIZE
+        sobol_draw_count += enrichment_count
         enrichment_duration = perf_counter() - enrichment_start
         phase_timings["pool_enrichment"] = phase_timings.get("pool_enrichment", 0.0) + enrichment_duration
         phase_counts["pool_enrichment"] = phase_counts.get("pool_enrichment", 0) + 1

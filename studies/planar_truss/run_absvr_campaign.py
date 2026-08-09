@@ -195,9 +195,8 @@ def run_one(
     pool_size = 1 << pool_log2
     adaptive_module.N_MCS = pool_size
     adaptive_module.MCS_ENRICH_SIZE = pool_size
-    # The run has a fixed training budget. The extra slot lets the historical
-    # loop enter without triggering pool enrichment before that budget ends.
-    adaptive_module.MAX_MCS_POOL_SIZE = pool_size + 1
+    # The campaign uses a fixed candidate population for every algorithm seed.
+    adaptive_module.MAX_MCS_POOL_SIZE = pool_size
 
     trainer = PeriodicEvidenceGridTrainer(retune_interval=20)
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
