@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
+import tempfile
 from typing import Any, Dict
 
 import numpy as np
@@ -60,7 +62,30 @@ def save_checkpoint(path: str | Path, state: Dict[str, Any]) -> None:
 
     payload = {name: array for name, array in arrays.items()}
     payload["meta"] = np.array(json.dumps(meta))
-    np.savez_compressed(target, **payload)
+
+    # Write beside the destination and atomically replace it only after the
+    # compressed archive has been flushed. An interruption therefore leaves
+    # either the preceding valid checkpoint or the complete new checkpoint,
+    # never a partially written NPZ at the public path.
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{target.name}.",
+        suffix=".tmp",
+        dir=target.parent,
+    )
+    temporary_path = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            np.savez_compressed(stream, **payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary_path, target)
+    except Exception:
+        try:
+            os.close(descriptor)
+        except OSError:
+            pass
+        temporary_path.unlink(missing_ok=True)
+        raise
 
 
 def load_checkpoint(path: str | Path) -> Dict[str, Any]:
