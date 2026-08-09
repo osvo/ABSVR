@@ -1,0 +1,109 @@
+{
+  "benchmark": "eg6",
+  "algorithm_seed": 127,
+  "svr_loss": "squared_epsilon",
+  "kernel": "gaussian",
+  "gradient_weight": 0.0,
+  "true_limit_state_calls": 161,
+  "candidate_pool_size": 131072,
+  "evidence_history": [
+    {
+      "n_samples": 81,
+      "C": 10000.0,
+      "epsilon": 1e-05,
+      "theta": 0.05,
+      "negative_log_evidence": 91.20111411528069,
+      "candidates_evaluated": 54,
+      "loss": "squared_epsilon"
+    },
+    {
+      "n_samples": 101,
+      "C": 100000.0,
+      "epsilon": 1e-05,
+      "theta": 0.0125,
+      "negative_log_evidence": 85.57077359262621,
+      "candidates_evaluated": 45,
+      "loss": "squared_epsilon"
+    },
+    {
+      "n_samples": 121,
+      "C": 100000.0,
+      "epsilon": 1e-05,
+      "theta": 0.00625,
+      "negative_log_evidence": 68.89131580920821,
+      "candidates_evaluated": 30,
+      "loss": "squared_epsilon"
+    },
+    {
+      "n_samples": 141,
+      "C": 10000.0,
+      "epsilon": 1e-05,
+      "theta": 0.00625,
+      "negative_log_evidence": 44.409934179329866,
+      "candidates_evaluated": 30,
+      "loss": "squared_epsilon"
+    },
+    {
+      "n_samples": 161,
+      "C": 100000.0,
+      "epsilon": 1e-05,
+      "theta": 0.00625,
+      "negative_log_evidence": 33.963483881713046,
+      "candidates_evaluated": 45,
+      "loss": "squared_epsilon"
+    }
+  ],
+  "validation": {
+    "method": "independently scrambled Sobol RQMC after model freezing",
+    "replications": 4,
+    "samples_per_replication": 262144,
+    "posthoc_true_limit_state_evaluations": 1048576,
+    "posthoc_evaluations_counted_as_absvr_calls": false,
+    "surrogate_pf_mean": 0.0005750656127929688,
+    "same_points_true_pf_mean": 0.005209922790527344,
+    "relative_error_vs_reference_percent": 88.67981077179195,
+    "individual_replications": [
+      {
+        "seed": 20260809,
+        "samples": 262144,
+        "true_pf": 0.005146026611328125,
+        "surrogate_pf": 0.0006103515625,
+        "true_positive": 119,
+        "false_positive": 41,
+        "false_negative": 1230,
+        "true_negative": 260754
+      },
+      {
+        "seed": 20260810,
+        "samples": 262144,
+        "true_pf": 0.0052032470703125,
+        "surrogate_pf": 0.0005645751953125,
+        "true_positive": 108,
+        "false_positive": 40,
+        "false_negative": 1256,
+        "true_negative": 260740
+      },
+      {
+        "seed": 20260811,
+        "samples": 262144,
+        "true_pf": 0.005229949951171875,
+        "surrogate_pf": 0.000537872314453125,
+        "true_positive": 110,
+        "false_positive": 31,
+        "false_negative": 1261,
+        "true_negative": 260742
+      },
+      {
+        "seed": 20260812,
+        "samples": 262144,
+        "true_pf": 0.005260467529296875,
+        "surrogate_pf": 0.00058746337890625,
+        "true_positive": 121,
+        "false_positive": 33,
+        "false_negative": 1258,
+        "true_negative": 260732
+      }
+    ]
+  },
+  "checkpoint": "results/consistent_historical_pilot/checkpoints/eg6/seed_127.npz"
+}
