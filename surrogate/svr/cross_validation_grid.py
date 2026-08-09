@@ -30,7 +30,12 @@ def _stratified_folds(y: np.ndarray, n_folds: int) -> np.ndarray:
 
 @dataclass
 class PeriodicCrossValidationGridTrainer:
-    """Select fixed-grid SVR hyperparameters using only out-of-fold error."""
+    """Select hyperparameters by out-of-fold failure-classification error.
+
+    Balanced sign error is the primary criterion because structural
+    reliability depends on the sign of the limit-state response. Normalized
+    response RMSE breaks ties without using a reference failure probability.
+    """
 
     retune_interval: int = 20
     n_folds: int = 5
@@ -158,7 +163,7 @@ class PeriodicCrossValidationGridTrainer:
                 except (ArithmeticError, RuntimeError, ValueError, np.linalg.LinAlgError):
                     nrmse, sign_error = float("inf"), float("inf")
                 evaluated += 1
-                key = (nrmse, sign_error, c_value, epsilon_value, theta_value)
+                key = (sign_error, nrmse, c_value, epsilon_value, theta_value)
                 if key < best_key:
                     best_key = key
                     best = np.array([c_value, epsilon_value, theta_value], dtype=float)
@@ -172,8 +177,8 @@ class PeriodicCrossValidationGridTrainer:
                     "C": float(best[0]),
                     "epsilon": float(best[1]),
                     "theta": float(best[2]),
-                    "cross_validated_nrmse": float(best_key[0]),
-                    "cross_validated_balanced_sign_error": float(best_key[1]),
+                    "cross_validated_nrmse": float(best_key[1]),
+                    "cross_validated_balanced_sign_error": float(best_key[0]),
                     "folds": int(min(self.n_folds, sample_count)),
                     "candidates_evaluated": int(evaluated),
                     "loss": self.loss,

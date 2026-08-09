@@ -47,3 +47,28 @@ def test_cross_validation_trainer_retunes_and_resumes() -> None:
     restored = PeriodicCrossValidationGridTrainer(**_settings())
     restored.load_state_dict(trainer.state_dict())
     assert restored.state_dict() == trainer.state_dict()
+
+
+def test_balanced_sign_error_takes_priority_over_response_rmse(monkeypatch) -> None:
+    trainer = PeriodicCrossValidationGridTrainer(
+        retune_interval=2,
+        n_folds=3,
+        c_grid=(10.0, 100.0),
+        epsilon_grid=(1.0e-3,),
+        theta_grid=(0.1,),
+        loss="legacy",
+    )
+
+    def synthetic_scores(_x, _y, _covariance, hyperparameters):
+        if hyperparameters[0] == 10.0:
+            return 0.01, 0.40
+        return 0.20, 0.10
+
+    monkeypatch.setattr(trainer, "_score_candidate", synthetic_scores)
+    x = np.linspace(-1.0, 1.0, 6)[:, None]
+    y = x[:, 0]
+    trainer(x, y, 1)
+
+    np.testing.assert_array_equal(trainer.best_hyperparameters, [100.0, 1.0e-3, 0.1])
+    assert trainer.history[0]["cross_validated_balanced_sign_error"] == 0.10
+    assert trainer.history[0]["cross_validated_nrmse"] == 0.20
