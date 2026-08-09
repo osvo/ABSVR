@@ -6,11 +6,14 @@ import json
 import os
 from pathlib import Path
 import tempfile
+import time
 from typing import Any, Dict
 
 import numpy as np
 
 CHECKPOINT_VERSION = 1
+_REPLACE_ATTEMPTS = 7
+_REPLACE_INITIAL_DELAY_SECONDS = 0.02
 
 _ARRAY_FIELDS = (
     "doe",
@@ -42,6 +45,21 @@ def _to_builtin(value: Any) -> Any:
     if isinstance(value, (list, tuple)):
         return [_to_builtin(item) for item in value]
     return value
+
+
+def _replace_with_retry(source: Path, target: Path) -> None:
+    """Atomically replace ``target``, tolerating brief Windows file locks."""
+
+    delay = _REPLACE_INITIAL_DELAY_SECONDS
+    for attempt in range(_REPLACE_ATTEMPTS):
+        try:
+            os.replace(source, target)
+            return
+        except PermissionError:
+            if attempt == _REPLACE_ATTEMPTS - 1:
+                raise
+            time.sleep(delay)
+            delay *= 2.0
 
 
 def save_checkpoint(path: str | Path, state: Dict[str, Any]) -> None:
@@ -78,7 +96,7 @@ def save_checkpoint(path: str | Path, state: Dict[str, Any]) -> None:
             np.savez_compressed(stream, **payload)
             stream.flush()
             os.fsync(stream.fileno())
-        os.replace(temporary_path, target)
+        _replace_with_retry(temporary_path, target)
     except Exception:
         try:
             os.close(descriptor)
