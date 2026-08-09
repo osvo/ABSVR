@@ -27,9 +27,9 @@ def select_best_candidate(
     doe = np.vstack([doe, best_point])
     g = np.concatenate([g, g_value])
 
-    # Keep the Monte Carlo population fixed.  Removing adaptively selected
-    # points would preferentially deplete samples near the limit-state surface
-    # and bias the empirical failure probability.  The learning function masks
-    # points already present in the DoE, so they cannot be selected twice.
+    original_idx = region_indices[best_idx]
+    mc_pool = np.delete(mc_pool, original_idx, axis=0)
+    v_pdf_pool = np.delete(v_pdf_pool, original_idx, axis=0)
+    n_mc -= 1
     n_samples_added += 1
     return doe, g, mc_pool, v_pdf_pool, n_mc, n_samples_added
