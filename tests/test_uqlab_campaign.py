@@ -7,7 +7,11 @@ import json
 
 import pytest
 
-from studies.planar_truss.run_uqlab_campaign import DEFAULT_SEEDS, summarize_results
+from studies.planar_truss.run_uqlab_campaign import (
+    DEFAULT_SEEDS,
+    _log_path,
+    summarize_results,
+)
 
 
 def _result(seed: int, pf: float, calls: int = 100) -> dict:
@@ -103,3 +107,9 @@ def test_default_seeds_match_frozen_confirmation_protocol() -> None:
     assert protocol["status"] == "frozen_before_confirmation"
     assert tuple(protocol["algorithm_seeds"]) == DEFAULT_SEEDS
     assert protocol["development_seed_excluded"] not in DEFAULT_SEEDS
+
+
+def test_matlab_log_path_is_unique_per_profile_and_seed(tmp_path: Path) -> None:
+    assert _log_path(tmp_path, "original_akmcs", 163) == (
+        tmp_path / "uqlab_original_akmcs_seed_163_matlab.log"
+    )

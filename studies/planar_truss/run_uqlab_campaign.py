@@ -77,6 +77,10 @@ def _result_path(output_directory: Path, profile: str, seed: int) -> Path:
     return output_directory / f"uqlab_{profile}_seed_{seed}.json"
 
 
+def _log_path(output_directory: Path, profile: str, seed: int) -> Path:
+    return output_directory / f"uqlab_{profile}_seed_{seed}_matlab.log"
+
+
 def _load_completed_result(path: Path, *, profile: str, seed: int) -> dict[str, Any]:
     result = json.loads(path.read_text(encoding="utf-8"))
     if result.get("profile") != profile or int(result.get("seed", -1)) != seed:
@@ -220,11 +224,15 @@ def main(argv: Sequence[str] | None = None) -> int:
                 f"run_uqlab_akmcs({seed},'{_matlab_quote(result_path)}',"
                 f"'{_matlab_quote(args.profile)}');"
             )
-            subprocess.run(
-                [str(matlab), "-batch", matlab_expression],
-                cwd=repo_root,
-                check=True,
-            )
+            log_path = _log_path(output_directory, args.profile, seed)
+            with log_path.open("w", encoding="utf-8") as matlab_log:
+                subprocess.run(
+                    [str(matlab), "-batch", matlab_expression],
+                    cwd=repo_root,
+                    check=True,
+                    stdout=matlab_log,
+                    stderr=subprocess.STDOUT,
+                )
         results.append(
             _load_completed_result(result_path, profile=args.profile, seed=seed)
         )

@@ -14,8 +14,8 @@
       "profile": "ALR_StopLF_emulation",
       "seed": 127,
       "status": "aborted_and_rejected",
-      "open_sees_calls_before_abort": 391,
-      "reason": "Source audit showed that ALR StopLF uses signed learning-function conventions and is not the native original AK-MCS stopU implementation."
+      "open_sees_calls_before_abort": 661,
+      "reason": "Source audit showed that ALR StopLF uses signed learning-function conventions and is not the native original AK-MCS stopU implementation. The first termination request did not stop the orphaned Windows process tree; the final audited count at explicit process termination was 661."
     },
     {
       "profile": "original_akmcs",
