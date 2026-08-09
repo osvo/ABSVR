@@ -22,7 +22,6 @@ def compute_learning_function(
     current_pf: float,
     model=None,
     w_grad: float = 1.0,
-    candidate_eligible: np.ndarray | None = None,
 ):
     """Return the learning function and associated pool subset."""
 
@@ -30,33 +29,19 @@ def compute_learning_function(
     if grad_weight < 0.0:
         grad_weight = 0.0
 
-    if candidate_eligible is None:
-        eligible = np.ones(mc_pool.shape[0], dtype=bool)
-    else:
-        eligible = np.asarray(candidate_eligible, dtype=bool).reshape(-1)
-        if eligible.shape != (mc_pool.shape[0],):
-            raise ValueError("candidate_eligible must match the Monte Carlo population.")
-    eligible_indices = np.flatnonzero(eligible)
-    if eligible_indices.size == 0:
-        return np.array([]), np.empty((0, mc_pool.shape[1])), np.array([], dtype=int)
-
-    candidate_pool = mc_pool[eligible_indices]
-    v_pdf = v_pdf_pool[eligible_indices]
+    v_pdf = v_pdf_pool
     v_joint_sorted = np.sort(v_pdf)
-    threshold_position = int(
-        np.ceil(SAMPLING_REGION_FACTOR * current_pf * candidate_pool.shape[0])
-    )
+    threshold_position = int(np.ceil(SAMPLING_REGION_FACTOR * current_pf * mc_pool.shape[0]))
     if threshold_position <= 0:
         threshold_position = 1
     if threshold_position > v_joint_sorted.size:
         threshold_position = v_joint_sorted.size
     pdf_threshold = v_joint_sorted[threshold_position - 1]
-    local_region_indices = np.where(v_pdf > pdf_threshold)[0]
-    region_indices = eligible_indices[local_region_indices]
+    region_indices = np.where(v_pdf > pdf_threshold)[0]
     mc_pool_region = mc_pool[region_indices]
     g_predict_region = g_predict[region_indices]
     g_mse_region = g_mse[region_indices]
-    v_joint_region = v_pdf[local_region_indices]
+    v_joint_region = v_pdf[region_indices]
 
     if not region_indices.size:
         return np.array([]), mc_pool_region, region_indices
@@ -103,8 +88,9 @@ def compute_learning_function(
     numerator = 1.0 + np.exp(SLF_PENALTY_FACTOR * scaled)
     denominator = NUMERICAL_STABILITY_TERM + (g_mse_region_norm * v_joint_region_norm) * min_distance * grad_factor
     lf = numerator / denominator
-    # A distance guard remains as a numerical safety net for initial design
-    # points or externally supplied eligibility masks.
+    # The candidate population also serves as the fixed Monte Carlo population.
+    # Retain evaluated points for an unbiased empirical probability estimate,
+    # but make them ineligible for reselection.
     duplicate_tolerance = 10.0 * np.sqrt(np.finfo(float).eps)
     lf[min_distance <= duplicate_tolerance] = np.inf
 

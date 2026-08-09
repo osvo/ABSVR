@@ -17,7 +17,6 @@ _ARRAY_FIELDS = (
     "g",
     "mc_pool",
     "v_pdf_pool",
-    "candidate_eligible",
     "pf_history",
     "pf_sequence",
 )

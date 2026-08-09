@@ -541,7 +541,6 @@ def run_adaptive_svr(
             sobol_draw_count = int(mc_pool.shape[0])
             num_mc = mc_pool.shape[0]
             v_pdf_pool = _compute_pdf(mc_pool, sobol_samples_z)
-        candidate_eligible = np.ones(num_mc, dtype=bool)
         pf_history = np.zeros(max_iter + doe.shape[0] + 10)
         n_samples_added = 0
         memory_profile = False
@@ -566,23 +565,6 @@ def run_adaptive_svr(
             else:
                 mc_pool_z_for_pdf = mc_pool
             v_pdf_pool = _compute_pdf(mc_pool, mc_pool_z_for_pdf)
-        stored_eligibility = resume_state.get("candidate_eligible")
-        if stored_eligibility is None:
-            candidate_eligible = np.ones(num_mc, dtype=bool)
-            if num_mc and doe.size:
-                # Backward-compatible reconstruction for checkpoints created
-                # before integration and candidate populations were separated.
-                for point in doe:
-                    matches = np.all(
-                        np.isclose(mc_pool, point, rtol=0.0, atol=1.0e-12), axis=1
-                    )
-                    candidate_eligible[matches] = False
-        else:
-            candidate_eligible = np.asarray(stored_eligibility, dtype=bool).reshape(-1)
-            if candidate_eligible.shape != (num_mc,):
-                raise ValueError(
-                    "Checkpoint candidate eligibility does not match its Monte Carlo pool."
-                )
         pf_history = np.asarray(resume_state.get("pf_history", []), dtype=float).reshape(-1)
         if pf_history.size == 0:
             pf_history = np.zeros(max_iter + doe.shape[0] + 10)
@@ -664,7 +646,6 @@ def run_adaptive_svr(
             "g": g,
             "mc_pool": mc_pool,
             "v_pdf_pool": v_pdf_pool,
-            "candidate_eligible": candidate_eligible,
             "pf_history": pf_history,
             "pf_sequence": np.asarray(pf_sequence, dtype=float),
             "phase_timings": {str(key): float(value) for key, value in phase_timings.items()},
@@ -773,7 +754,6 @@ def run_adaptive_svr(
                 current_pf,
                 model=surrogate_for_gradients,
                 w_grad=learning_w_grad,
-                candidate_eligible=candidate_eligible,
             )
 
             if tail_policy != "none" and mc_pool_region.size and doe.shape[0] > 1:
@@ -810,7 +790,6 @@ def run_adaptive_svr(
                 g,
                 mc_pool,
                 v_pdf_pool,
-                candidate_eligible,
                 num_mc,
                 n_samples_added,
             ) = _time_phase(
@@ -823,7 +802,6 @@ def run_adaptive_svr(
                 g,
                 mc_pool,
                 v_pdf_pool,
-                candidate_eligible,
                 num_mc,
                 n_samples_added,
                 fun,
@@ -870,9 +848,6 @@ def run_adaptive_svr(
         mc_pool = np.vstack([mc_pool, additional])
         v_pdf_add = _compute_pdf(additional, additional_z)
         v_pdf_pool = np.concatenate([v_pdf_pool, v_pdf_add])
-        candidate_eligible = np.concatenate(
-            [candidate_eligible, np.ones(enrichment_count, dtype=bool)]
-        )
         num_mc = mc_pool.shape[0]
         sobol_draw_count += enrichment_count
         enrichment_duration = perf_counter() - enrichment_start
