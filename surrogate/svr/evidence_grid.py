@@ -9,6 +9,7 @@ from typing import Any, Sequence
 import numpy as np
 
 from .kernel_utils import normalize_kernel_name
+from .loss_utils import LEGACY_LOSS, normalize_loss
 from .model import _svr_likelihood
 from .train_internal import svr_train_internal
 
@@ -65,11 +66,13 @@ class PeriodicEvidenceGridTrainer:
     theta_factors: tuple[float, ...] = (0.25, 0.5, 1.0, 2.0, 4.0)
     c_bounds: tuple[float, float] = (10.0, 1.0e5)
     theta_bounds: tuple[float, float] = (1.0e-4, 1.0)
+    loss: str = LEGACY_LOSS
     history: list[dict[str, float | int]] = field(default_factory=list, init=False)
     _best: np.ndarray | None = field(default=None, init=False, repr=False)
     _last_tuned_samples: int = field(default=-1, init=False, repr=False)
 
     def __post_init__(self) -> None:
+        self.loss = normalize_loss(self.loss)
         if self.retune_interval <= 0:
             raise ValueError("retune_interval must be positive.")
         if not self.initial_c_grid or not self.epsilon_grid or not self.initial_theta_grid:
@@ -94,6 +97,7 @@ class PeriodicEvidenceGridTrainer:
             ),
             "last_tuned_samples": int(self._last_tuned_samples),
             "history": [dict(item) for item in self.history],
+            "loss": self.loss,
         }
 
     def load_state_dict(self, state: dict[str, Any]) -> None:
@@ -109,6 +113,11 @@ class PeriodicEvidenceGridTrainer:
         history = state.get("history", [])
         if not isinstance(history, list) or not all(isinstance(item, dict) for item in history):
             raise ValueError("Invalid evidence-trainer history in checkpoint.")
+        stored_loss = normalize_loss(state.get("loss", self.loss))
+        if stored_loss != self.loss:
+            raise ValueError(
+                f"Checkpoint evidence loss {stored_loss!r} does not match {self.loss!r}."
+            )
         self._best = best
         self._last_tuned_samples = int(state.get("last_tuned_samples", -1))
         self.history = [dict(item) for item in history]
@@ -172,7 +181,14 @@ class PeriodicEvidenceGridTrainer:
                     [[c_value, epsilon_value], np.full(n_dim, theta_value)]
                 )
                 try:
-                    score = float(_svr_likelihood(hyperparameters, par, covariance))
+                    score = float(
+                        _svr_likelihood(
+                            hyperparameters,
+                            par,
+                            covariance,
+                            loss=self.loss,
+                        )
+                    )
                 except (ArithmeticError, RuntimeError, ValueError, np.linalg.LinAlgError):
                     score = float("inf")
                 evaluated += 1
@@ -192,6 +208,7 @@ class PeriodicEvidenceGridTrainer:
                     "theta": float(best[2]),
                     "negative_log_evidence": float(best_score),
                     "candidates_evaluated": int(evaluated),
+                    "loss": self.loss,
                 }
             )
 
@@ -199,7 +216,12 @@ class PeriodicEvidenceGridTrainer:
         fixed_hyperparameters = np.concatenate(
             [[self._best[0], self._best[1]], np.full(n_dim, self._best[2])]
         )
-        return svr_train_internal(par, fixed_hyperparameters, covariance)
+        return svr_train_internal(
+            par,
+            fixed_hyperparameters,
+            covariance,
+            loss=self.loss,
+        )
 
 
 __all__ = ["PeriodicEvidenceGridTrainer"]

@@ -64,8 +64,10 @@ python -m studies.planar_truss.run_absvr_campaign
 ```
 
 The default campaign uses ten algorithm seeds, 15 initial plus 80 adaptive
-OpenSees evaluations per run, and gradient weights 0 and 1. Hyperparameters
-are selected periodically by the corrected Bayesian evidence using only the
+OpenSees evaluations per run, gradient weights 0 and 1, and the explicitly
+declared squared epsilon-insensitive loss. Its likelihood normalizer,
+curvature determinant, and dual QP therefore belong to the same loss model.
+Hyperparameters are selected periodically by Bayesian evidence using only the
 current design. Independent scrambled Sobol samples are used only after each
 model has been frozen. Their reference evaluations are reported explicitly
 and are not counted as calls made by ABSVR.

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from .kernel_utils import compute_kernel, expand_theta
+from .loss_utils import LEGACY_LOSS, SQUARED_EPSILON_LOSS, normalize_loss
 from .train_internal import svr_train_internal
 
 
@@ -26,6 +27,8 @@ def svr_model(
     lb: np.ndarray,
     ub: np.ndarray,
     covariance: str,
+    *,
+    loss: str = LEGACY_LOSS,
 ):
     """Optimize SVR hyperparameters via the box-min algorithm implementation."""
 
@@ -64,26 +67,43 @@ def svr_model(
     lo = np.asarray(lb, dtype=float)
     up = np.asarray(ub, dtype=float)
 
-    t, _, _ = _boxmin(init, lo, up, par, covariance)
-    model = svr_train_internal(par, t, covariance)
+    loss = normalize_loss(loss)
+    t, _, _ = _boxmin(init, lo, up, par, covariance, loss=loss)
+    model = svr_train_internal(par, t, covariance, loss=loss)
     return model
 
 
-def _boxmin(t0: np.ndarray, lo: np.ndarray, up: np.ndarray, par: dict, covariance: str):
-    t, f, state = _start(t0, lo, up, par, covariance)
+def _boxmin(
+    t0: np.ndarray,
+    lo: np.ndarray,
+    up: np.ndarray,
+    par: dict,
+    covariance: str,
+    *,
+    loss: str = LEGACY_LOSS,
+):
+    loss = normalize_loss(loss)
+    t, f, state = _start(t0, lo, up, par, covariance, loss=loss)
     if not math.isinf(f):
         p = len(t)
         kmax = min(max(p, 2), 4)
         for _ in range(kmax):
             th = t.copy()
-            t, f, state = _explore(t, f, state, par, covariance)
-            t, f, state = _move(th, t, f, state, par, covariance)
+            t, f, state = _explore(t, f, state, par, covariance, loss=loss)
+            t, f, state = _move(th, t, f, state, par, covariance, loss=loss)
     perf = {"nv": state.nv, "perf": state.perf[:, : state.nv]}
     return t, f, perf
 
 
-def _svr_likelihood(hyp: np.ndarray, par: dict, covariance: str) -> float:
-    model = svr_train_internal(par, hyp, covariance)
+def _svr_likelihood(
+    hyp: np.ndarray,
+    par: dict,
+    covariance: str,
+    *,
+    loss: str = LEGACY_LOSS,
+) -> float:
+    loss = normalize_loss(loss)
+    model = svr_train_internal(par, hyp, covariance, loss=loss)
     kernel1 = model["Kernelmatrix1"]
     kernel = model["Kernelmatrix"]
     parameter = model["parameter"]
@@ -95,15 +115,22 @@ def _svr_likelihood(hyp: np.ndarray, par: dict, covariance: str) -> float:
     epsilon = model["epsilon"]
     idx = np.where(np.abs(delta) > epsilon)[0]
     if idx.size:
-        loss = np.abs(delta[idx]) - epsilon
-        loss_sum = float(np.sum(loss))
+        excess = np.abs(delta[idx]) - epsilon
+        if loss == SQUARED_EPSILON_LOSS:
+            loss_sum = float(0.5 * np.sum(excess**2))
+        else:
+            loss_sum = float(np.sum(excess))
     else:
         loss_sum = 0.0
 
     sv = model["SV"]
     if sv.size:
-        active_regularized_kernel = kernel1[np.ix_(sv, sv)]
-        sign, logdet = np.linalg.slogdet(active_regularized_kernel)
+        if loss == SQUARED_EPSILON_LOSS:
+            evidence_curvature = np.eye(sv.size) + C * kernel[np.ix_(sv, sv)]
+            sign, logdet = np.linalg.slogdet(evidence_curvature)
+        else:
+            active_regularized_kernel = kernel1[np.ix_(sv, sv)]
+            sign, logdet = np.linalg.slogdet(active_regularized_kernel)
         if sign <= 0:
             logdet = np.log(np.finfo(float).tiny)
     else:
@@ -114,11 +141,22 @@ def _svr_likelihood(hyp: np.ndarray, par: dict, covariance: str) -> float:
     term1 = 0.5 * parameter @ (kernel @ parameter)
     term2 = C * loss_sum
     term3 = kernel.shape[0] * math.log(math.sqrt(2.0 * math.pi / C) + 2.0 * epsilon)
-    term4 = 0.5 * (numsv * math.log(C) + logdet)
+    if loss == SQUARED_EPSILON_LOSS:
+        term4 = 0.5 * logdet
+    else:
+        term4 = 0.5 * (numsv * math.log(C) + logdet)
     return term1 + term2 + term3 + term4
 
 
-def _start(t0: np.ndarray, lo: np.ndarray, up: np.ndarray, par: dict, covariance: str):
+def _start(
+    t0: np.ndarray,
+    lo: np.ndarray,
+    up: np.ndarray,
+    par: dict,
+    covariance: str,
+    *,
+    loss: str = LEGACY_LOSS,
+):
     t = t0.astype(float).copy()
     lo = lo.astype(float)
     up = up.astype(float)
@@ -135,7 +173,7 @@ def _start(t0: np.ndarray, lo: np.ndarray, up: np.ndarray, par: dict, covariance
         t[ng] = (lo[ng] * up[ng] ** 7) ** (1.0 / 8.0)
 
     ne = np.where(D != 1.0)[0]
-    f = _svr_likelihood(t, par, covariance)
+    f = _svr_likelihood(t, par, covariance, loss=loss)
     perf = np.zeros((p + 2, 200 * p))
     perf[:, 0] = np.concatenate([t, [f, 1]])
     state = OptimizationState(D=D, ne=ne, lo=lo, up=up, perf=perf, nv=1)
@@ -161,7 +199,7 @@ def _start(t0: np.ndarray, lo: np.ndarray, up: np.ndarray, par: dict, covariance
             tk = th.copy()
             for _ in range(4):
                 tt = tk * v
-                ff = _svr_likelihood(tt, par, covariance)
+                ff = _svr_likelihood(tt, par, covariance, loss=loss)
                 state.nv += 1
                 state.perf[:, state.nv - 1] = np.concatenate([tt, [ff, 1]])
                 if ff <= fk:
@@ -180,7 +218,15 @@ def _start(t0: np.ndarray, lo: np.ndarray, up: np.ndarray, par: dict, covariance
     return t, f, state
 
 
-def _explore(t: np.ndarray, f: float, state: OptimizationState, par: dict, covariance: str):
+def _explore(
+    t: np.ndarray,
+    f: float,
+    state: OptimizationState,
+    par: dict,
+    covariance: str,
+    *,
+    loss: str = LEGACY_LOSS,
+):
     nv = state.nv
     ne = state.ne
     for j in ne:
@@ -195,7 +241,7 @@ def _explore(t: np.ndarray, f: float, state: OptimizationState, par: dict, covar
             tt[j] = t[j] * math.sqrt(DD)
         else:
             tt[j] = min(state.up[j], t[j] * DD)
-        ff = _svr_likelihood(tt, par, covariance)
+        ff = _svr_likelihood(tt, par, covariance, loss=loss)
         nv += 1
         state.perf[:, nv - 1] = np.concatenate([tt, [ff, 2]])
         if ff < f:
@@ -206,7 +252,7 @@ def _explore(t: np.ndarray, f: float, state: OptimizationState, par: dict, covar
             if not atbd:
                 tt = t.copy()
                 tt[j] = max(state.lo[j], t[j] / DD)
-                ff = _svr_likelihood(tt, par, covariance)
+                ff = _svr_likelihood(tt, par, covariance, loss=loss)
                 nv += 1
                 state.perf[:, nv - 1] = np.concatenate([tt, [ff, 2]])
                 if ff < f:
@@ -218,7 +264,16 @@ def _explore(t: np.ndarray, f: float, state: OptimizationState, par: dict, covar
     return t, f, state
 
 
-def _move(th: np.ndarray, t: np.ndarray, f: float, state: OptimizationState, par: dict, covariance: str):
+def _move(
+    th: np.ndarray,
+    t: np.ndarray,
+    f: float,
+    state: OptimizationState,
+    par: dict,
+    covariance: str,
+    *,
+    loss: str = LEGACY_LOSS,
+):
     nv = state.nv
     p = t.size
     v = t / th
@@ -230,7 +285,7 @@ def _move(th: np.ndarray, t: np.ndarray, f: float, state: OptimizationState, par
     rept = True
     while rept:
         tt = np.minimum(state.up, np.maximum(state.lo, t * v))
-        ff = _svr_likelihood(tt, par, covariance)
+        ff = _svr_likelihood(tt, par, covariance, loss=loss)
         nv += 1
         state.perf[:, nv - 1] = np.concatenate([tt, [ff, 3]])
         if ff < f:

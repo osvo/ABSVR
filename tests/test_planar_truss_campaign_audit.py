@@ -11,6 +11,7 @@ def _campaign() -> dict:
     run = {
         "algorithm_seed": 7,
         "gradient_weight": 0.0,
+        "svr_loss": "squared_epsilon",
         "open_sees_limit_state_calls": 95,
         "adaptive_candidate_pool_size": 131072,
         "evidence_history": [
@@ -28,6 +29,7 @@ def _campaign() -> dict:
         },
     }
     return {
+        "schema_version": 2,
         "selection_uses_reference_probability": False,
         "selection_uses_validation_set": False,
         "training_protocol": {
@@ -35,6 +37,7 @@ def _campaign() -> dict:
             "added_points": 80,
             "candidate_pool_size": 131072,
             "hyperparameter_retune_interval": 20,
+            "svr_loss": "squared_epsilon",
         },
         "independent_reference": {
             "mean_pf": 0.00152,

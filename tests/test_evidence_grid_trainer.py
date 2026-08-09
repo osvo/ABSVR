@@ -61,3 +61,27 @@ def test_evidence_grid_state_round_trip_preserves_schedule() -> None:
         restored.best_hyperparameters,
         original.best_hyperparameters,
     )
+
+
+def test_squared_epsilon_evidence_choice_is_explicit_and_resumable() -> None:
+    settings = {
+        "retune_interval": 2,
+        "initial_c_grid": (100.0,),
+        "epsilon_grid": (1.0e-3,),
+        "initial_theta_grid": (0.1,),
+        "c_factors": (1.0,),
+        "theta_factors": (1.0,),
+        "loss": "squared_epsilon",
+    }
+    x = np.linspace(-1.0, 1.0, 6)[:, None]
+    y = x[:, 0] ** 2 - 0.25
+    trainer = PeriodicEvidenceGridTrainer(**settings)
+    model = trainer(x, y, 1)
+
+    assert model["Loss"] == "squared_epsilon"
+    assert trainer.history[0]["loss"] == "squared_epsilon"
+    assert trainer.state_dict()["loss"] == "squared_epsilon"
+
+    restored = PeriodicEvidenceGridTrainer(**settings)
+    restored.load_state_dict(trainer.state_dict())
+    assert restored.state_dict() == trainer.state_dict()

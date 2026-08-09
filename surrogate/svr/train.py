@@ -7,6 +7,7 @@ import numpy as np
 from scipy.spatial.distance import pdist
 
 from .kernel_utils import normalize_kernel_name
+from .loss_utils import LEGACY_LOSS, normalize_loss
 from .model import svr_model
 
 
@@ -84,6 +85,7 @@ def train_svr(
     c_init: float | None = None,
     epsilon_init: float | None = None,
     bounds_mode: str | None = None,
+    loss: str = LEGACY_LOSS,
 ) -> dict:
     """Train the SVR surrogate with reliability-aligned hyperparameter bounds.
 
@@ -161,5 +163,13 @@ def train_svr(
 
     _, covariance = normalize_kernel_name(kernel)
 
-    return svr_model(X, Y, hyperparameters, lb, ub, covariance)
+    return svr_model(
+        X,
+        Y,
+        hyperparameters,
+        lb,
+        ub,
+        covariance,
+        loss=normalize_loss(loss),
+    )
 

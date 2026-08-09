@@ -23,6 +23,11 @@ def audit_campaign(campaign: dict[str, Any], reference: dict[str, Any]) -> dict[
     protocol = campaign["training_protocol"]
     if protocol.get("response_preserves_original_failure_event") is not True:
         raise ValueError("Campaign response must preserve the original failure event.")
+    schema_version = int(campaign.get("schema_version", 1))
+    raw_loss = protocol.get("svr_loss")
+    expected_loss = None if raw_loss is None else str(raw_loss)
+    if schema_version >= 2 and expected_loss not in {"legacy", "squared_epsilon"}:
+        raise ValueError("Campaign must declare a recognized SVR loss formulation.")
 
     initial_samples = 15
     added_points = int(protocol["added_points"])
@@ -37,6 +42,8 @@ def audit_campaign(campaign: dict[str, Any], reference: dict[str, Any]) -> dict[
         raise ValueError("Algorithm seeds must be unique within the frozen campaign.")
 
     for run in runs:
+        if expected_loss is not None and run.get("svr_loss") != expected_loss:
+            raise ValueError("A run does not match the frozen SVR loss formulation.")
         if int(run["open_sees_limit_state_calls"]) != expected_calls:
             raise ValueError("A run does not match the fixed OpenSees call budget.")
         if int(run["adaptive_candidate_pool_size"]) != int(protocol["candidate_pool_size"]):

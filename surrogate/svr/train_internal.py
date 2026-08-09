@@ -17,6 +17,7 @@ except ImportError:  # pragma: no cover - optional
     _HAVE_CVXOPT = False
 
 from .kernel_utils import compute_kernel
+from .loss_utils import LEGACY_LOSS, SQUARED_EPSILON_LOSS, normalize_loss
 
 
 def _solve_qp(
@@ -97,8 +98,16 @@ def _solve_qp(
     return result.x
 
 
-def svr_train_internal(par: dict, hyperparameters: np.ndarray, covariance: str) -> dict:
+def svr_train_internal(
+    par: dict,
+    hyperparameters: np.ndarray,
+    covariance: str,
+    *,
+    loss: str = LEGACY_LOSS,
+) -> dict:
     """Train an epsilon-SVR model for fixed hyperparameters."""
+
+    loss = normalize_loss(loss)
 
     C = float(hyperparameters[0])
     epsilon = float(hyperparameters[1])
@@ -113,17 +122,22 @@ def svr_train_internal(par: dict, hyperparameters: np.ndarray, covariance: str) 
     kernel[np.diag_indices_from(kernel)] += 2.0 * mu
     kernel1 = kernel + np.diag(np.full(m, 1.0 / C))
 
-    # Preserve the calibrated ABSVR dual used for the manuscript benchmarks:
-    # a C-box-constrained epsilon-SVR with the regularized kernel in the signed
-    # dual. The alternative unbounded squared-loss formulation was evaluated
-    # and rejected because it degraded several frozen benchmark profiles.
-    hb = np.block([[kernel1, -kernel1], [-kernel1, kernel1]])
+    if loss == SQUARED_EPSILON_LOSS:
+        # Epsilon-insensitive squared loss: the 1/C multiplier penalty acts on
+        # alpha and alpha-star separately and the multipliers are unbounded.
+        hb = np.block([[kernel1, -kernel], [-kernel, kernel1]])
+        upper_bound = None
+    else:
+        # Preserve the historical manuscript implementation exactly. It uses
+        # the regularized kernel in every signed block and a C box constraint.
+        hb = np.block([[kernel1, -kernel1], [-kernel1, kernel1]])
+        upper_bound = C
     f = np.concatenate([(epsilon - Y), (epsilon + Y)])
 
     aeq = np.concatenate([np.ones(m), -np.ones(m)])
     beq = 0.0
 
-    alpha = _solve_qp(hb, f, aeq, beq, C)
+    alpha = _solve_qp(hb, f, aeq, beq, upper_bound)
     alpha_pos = alpha[:m]
     alpha_neg = alpha[m:]
 
@@ -132,23 +146,50 @@ def svr_train_internal(par: dict, hyperparameters: np.ndarray, covariance: str) 
     prediction = kernel @ beta
 
     sv_tol = 1e-10
-    margin_pos = (alpha_pos > sv_tol) & (alpha_pos < C - sv_tol)
-    margin_neg = (alpha_neg > sv_tol) & (alpha_neg < C - sv_tol)
-    b_candidates = []
-    if np.any(margin_pos):
-        b_candidates.append(Y[margin_pos] - prediction[margin_pos] - epsilon)
-    if np.any(margin_neg):
-        b_candidates.append(Y[margin_neg] - prediction[margin_neg] + epsilon)
-    if b_candidates:
-        bias = float(np.median(np.concatenate(b_candidates)))
-    else:
-        slack = alpha_pos / C
-        slack_neg = alpha_neg / C
-        lower_bias = Y - prediction - epsilon - slack
-        upper_bias = Y - prediction + epsilon + slack_neg
-        bias = float(np.mean(np.concatenate([lower_bias, upper_bias])))
+    if loss == SQUARED_EPSILON_LOSS:
+        active_pos = alpha_pos > sv_tol
+        active_neg = alpha_neg > sv_tol
+        b_candidates = []
+        if np.any(active_pos):
+            b_candidates.append(
+                Y[active_pos]
+                - prediction[active_pos]
+                - epsilon
+                - alpha_pos[active_pos] / C
+            )
+        if np.any(active_neg):
+            b_candidates.append(
+                Y[active_neg]
+                - prediction[active_neg]
+                + epsilon
+                + alpha_neg[active_neg] / C
+            )
+        if b_candidates:
+            bias = float(np.median(np.concatenate(b_candidates)))
+        else:
+            bias = float(np.mean(Y - prediction))
 
-    support_vector_mask = np.abs(beta) > sv_tol
+        residual = Y - (prediction + bias)
+        support_vector_mask = ((beta > 0.0) & (residual > epsilon)) | (
+            (beta < 0.0) & (residual < -epsilon)
+        )
+    else:
+        margin_pos = (alpha_pos > sv_tol) & (alpha_pos < C - sv_tol)
+        margin_neg = (alpha_neg > sv_tol) & (alpha_neg < C - sv_tol)
+        b_candidates = []
+        if np.any(margin_pos):
+            b_candidates.append(Y[margin_pos] - prediction[margin_pos] - epsilon)
+        if np.any(margin_neg):
+            b_candidates.append(Y[margin_neg] - prediction[margin_neg] + epsilon)
+        if b_candidates:
+            bias = float(np.median(np.concatenate(b_candidates)))
+        else:
+            slack = alpha_pos / C
+            slack_neg = alpha_neg / C
+            lower_bias = Y - prediction - epsilon - slack
+            upper_bias = Y - prediction + epsilon + slack_neg
+            bias = float(np.mean(np.concatenate([lower_bias, upper_bias])))
+        support_vector_mask = np.abs(beta) > sv_tol
     sv_indices = np.nonzero(support_vector_mask)[0]
 
     if sv_indices.size:
@@ -167,6 +208,7 @@ def svr_train_internal(par: dict, hyperparameters: np.ndarray, covariance: str) 
         "Covariance": covariance,
         "C": C,
         "epsilon": epsilon,
+        "Loss": loss,
         "SV": sv_indices,
         "bias": bias,
         "Kernelmatrix": kernel,

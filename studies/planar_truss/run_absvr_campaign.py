@@ -20,6 +20,7 @@ from benchmarks.planar_truss_opensees import (
     planar_truss_limit_state,
 )
 from surrogate.svr import PeriodicEvidenceGridTrainer, svr_predict
+from surrogate.svr.loss_utils import normalize_loss
 
 
 DEFAULT_SEEDS = (11, 23, 37, 41, 53, 61, 73, 89, 97, 101)
@@ -196,6 +197,7 @@ def run_one(
     validation_replications: int,
     validation_base_seed: int,
     verbose: bool,
+    loss: str,
 ) -> dict[str, Any]:
     adaptive_module = importlib.import_module("absvr_core.adaptive_loop")
     pool_size = 1 << pool_log2
@@ -204,10 +206,10 @@ def run_one(
     # The campaign uses a fixed candidate population for every algorithm seed.
     adaptive_module.MAX_MCS_POOL_SIZE = pool_size
 
-    trainer = PeriodicEvidenceGridTrainer(retune_interval=20)
+    trainer = PeriodicEvidenceGridTrainer(retune_interval=20, loss=loss)
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     checkpoint = checkpoint_dir / (
-        f"seed_{seed}_gradient_{_gradient_label(gradient_weight)}.npz"
+        f"seed_{seed}_gradient_{_gradient_label(gradient_weight)}_loss_{loss}.npz"
     )
     resume_source = str(checkpoint) if resume and checkpoint.exists() else None
     result = run_adaptive_svr(
@@ -240,6 +242,7 @@ def run_one(
     return {
         "algorithm_seed": int(seed),
         "gradient_weight": float(gradient_weight),
+        "svr_loss": loss,
         "open_sees_limit_state_calls": int(result.total_evaluations),
         "adaptive_candidate_pool_size": int(pool_size),
         "adaptive_pool_pf_diagnostic": float(result.probability_of_failure),
@@ -264,6 +267,7 @@ def main() -> None:
         help="Comma-separated gradient weights for the ablation.",
     )
     parser.add_argument("--max-added", type=int, default=80)
+    parser.add_argument("--loss", default="squared_epsilon")
     parser.add_argument("--pool-log2", type=int, default=17)
     parser.add_argument("--validation-log2", type=int, default=20)
     parser.add_argument("--validation-replications", type=int, default=16)
@@ -286,6 +290,7 @@ def main() -> None:
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--verbose", action="store_true")
     args = parser.parse_args()
+    args.loss = normalize_loss(args.loss)
     if args.max_added < 1 or args.pool_log2 < 1:
         raise SystemExit("Training budget and pool exponent must be positive.")
     if args.validation_log2 < 1 or args.validation_replications < 1:
@@ -308,6 +313,7 @@ def main() -> None:
                 validation_replications=args.validation_replications,
                 validation_base_seed=args.validation_base_seed,
                 verbose=args.verbose,
+                loss=args.loss,
             )
             runs.append(run)
             print(
@@ -328,6 +334,7 @@ def main() -> None:
         for weight in args.gradient_weights
     }
     report = {
+        "schema_version": 2,
         "benchmark": "published 23-bar planar truss evaluated with OpenSeesPy",
         "selection_uses_reference_probability": False,
         "selection_uses_validation_set": False,
@@ -343,6 +350,7 @@ def main() -> None:
             "candidate_pool_size": int(1 << args.pool_log2),
             "hyperparameter_selection": "periodic deterministic Bayesian-evidence grid",
             "hyperparameter_retune_interval": 20,
+            "svr_loss": args.loss,
         },
         "independent_reference": {
             "path": args.reference.as_posix(),

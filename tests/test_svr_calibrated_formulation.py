@@ -6,6 +6,7 @@ import numpy as np
 
 from surrogate.svr.predict import svr_predict
 from surrogate.svr.train_internal import svr_train_internal
+from surrogate.svr import train_internal as train_internal_module
 
 
 def _training_parameters(x: np.ndarray, y: np.ndarray) -> dict[str, np.ndarray]:
@@ -46,3 +47,29 @@ def test_calibrated_svr_fits_smooth_training_data() -> None:
     assert np.all(np.isfinite(variance))
     assert np.all(variance >= 0.0)
 
+
+def test_squared_epsilon_dual_uses_separate_multiplier_penalties(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    def capture_qp(H, f, Aeq, beq, upper_bound):
+        captured["H"] = np.asarray(H)
+        captured["upper_bound"] = upper_bound
+        return np.zeros_like(f)
+
+    monkeypatch.setattr(train_internal_module, "_solve_qp", capture_qp)
+    x = np.array([[-1.0], [0.0], [1.0]])
+    y = np.array([-0.5, 0.0, 0.5])
+    c_value = 20.0
+    model = svr_train_internal(
+        _training_parameters(x, y),
+        np.array([c_value, 0.01, 0.7]),
+        "Gaussian",
+        loss="squared_epsilon",
+    )
+
+    kernel = np.asarray(model["Kernelmatrix"])
+    regularized = np.asarray(model["Kernelmatrix1"])
+    expected = np.block([[regularized, -kernel], [-kernel, regularized]])
+    np.testing.assert_allclose(captured["H"], expected, rtol=0.0, atol=0.0)
+    assert captured["upper_bound"] is None
+    assert model["Loss"] == "squared_epsilon"
