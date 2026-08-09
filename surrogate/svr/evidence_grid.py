@@ -85,6 +85,34 @@ class PeriodicEvidenceGridTrainer:
 
         return None if self._best is None else self._best.copy()
 
+    def state_dict(self) -> dict[str, Any]:
+        """Return the JSON-serializable state required for exact resumption."""
+
+        return {
+            "best_hyperparameters": (
+                None if self._best is None else self._best.tolist()
+            ),
+            "last_tuned_samples": int(self._last_tuned_samples),
+            "history": [dict(item) for item in self.history],
+        }
+
+    def load_state_dict(self, state: dict[str, Any]) -> None:
+        """Restore a state previously produced by :meth:`state_dict`."""
+
+        raw_best = state.get("best_hyperparameters")
+        if raw_best is None:
+            best = None
+        else:
+            best = np.asarray(raw_best, dtype=float).reshape(-1)
+            if best.size != 3 or np.any(~np.isfinite(best)) or np.any(best <= 0.0):
+                raise ValueError("Invalid evidence-trainer hyperparameters in checkpoint.")
+        history = state.get("history", [])
+        if not isinstance(history, list) or not all(isinstance(item, dict) for item in history):
+            raise ValueError("Invalid evidence-trainer history in checkpoint.")
+        self._best = best
+        self._last_tuned_samples = int(state.get("last_tuned_samples", -1))
+        self.history = [dict(item) for item in history]
+
     def _candidate_grid(self) -> tuple[tuple[float, ...], tuple[float, ...], tuple[float, ...]]:
         if self._best is None:
             c_values = _unique_clipped(self.initial_c_grid, *self.c_bounds)

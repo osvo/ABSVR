@@ -1,0 +1,362 @@
+"""Repeated, reference-blind ABSVR campaign for the planar truss benchmark."""
+
+from __future__ import annotations
+
+import argparse
+import importlib
+import json
+from pathlib import Path
+from typing import Any, Iterable
+
+import numpy as np
+from scipy.special import ndtri
+from scipy.stats import qmc
+
+from absvr_core import run_adaptive_svr
+from absvr_core.checkpointing import load_checkpoint
+from benchmarks.planar_truss_opensees import (
+    REFERENCE_FAILURE_PROBABILITY,
+    get_problem_definition,
+    planar_truss_limit_state,
+)
+from surrogate.svr import PeriodicEvidenceGridTrainer, svr_predict
+
+
+DEFAULT_SEEDS = (11, 23, 37, 41, 53, 61, 73, 89, 97, 101)
+
+
+def _parse_int_list(value: str) -> tuple[int, ...]:
+    parsed = tuple(int(item.strip()) for item in value.split(",") if item.strip())
+    if not parsed:
+        raise argparse.ArgumentTypeError("At least one integer is required.")
+    return parsed
+
+
+def _parse_float_list(value: str) -> tuple[float, ...]:
+    parsed = tuple(float(item.strip()) for item in value.split(",") if item.strip())
+    if not parsed or any(item < 0.0 for item in parsed):
+        raise argparse.ArgumentTypeError("At least one non-negative weight is required.")
+    return parsed
+
+
+def _gradient_label(weight: float) -> str:
+    return f"{weight:g}".replace("-", "m").replace(".", "p")
+
+
+def _load_reference(path: Path) -> tuple[float, dict[str, Any]]:
+    report = json.loads(path.read_text(encoding="utf-8"))
+    reference_pf = float(report["mean_pf"])
+    if not 0.0 < reference_pf < 1.0:
+        raise ValueError("Reference probability must lie strictly between zero and one.")
+    return reference_pf, report
+
+
+def _validation_replication(
+    model: dict[str, Any],
+    *,
+    log2_samples: int,
+    seed: int,
+) -> dict[str, int | float]:
+    n_samples = 1 << log2_samples
+    unit = qmc.Sobol(d=10, scramble=True, seed=seed).random_base2(log2_samples)
+    z = ndtri(
+        np.clip(unit, np.finfo(float).tiny, 1.0 - np.finfo(float).eps)
+    )
+    true_response = planar_truss_limit_state(
+        z,
+        {"solver": "vectorized", "response": "log_ratio"},
+    )
+    predicted_response, _ = svr_predict(z, model)
+    true_failure = np.asarray(true_response) <= 0.0
+    predicted_failure = np.asarray(predicted_response) <= 0.0
+
+    true_positive = int(np.count_nonzero(true_failure & predicted_failure))
+    false_positive = int(np.count_nonzero(~true_failure & predicted_failure))
+    false_negative = int(np.count_nonzero(true_failure & ~predicted_failure))
+    true_negative = n_samples - true_positive - false_positive - false_negative
+    return {
+        "seed": int(seed),
+        "samples": int(n_samples),
+        "true_failures": int(np.count_nonzero(true_failure)),
+        "predicted_failures": int(np.count_nonzero(predicted_failure)),
+        "true_positive": true_positive,
+        "false_positive": false_positive,
+        "false_negative": false_negative,
+        "true_negative": int(true_negative),
+        "true_pf": float(np.mean(true_failure)),
+        "surrogate_pf": float(np.mean(predicted_failure)),
+    }
+
+
+def _validate_model(
+    model: dict[str, Any],
+    *,
+    reference_pf: float,
+    log2_samples: int,
+    replications: int,
+    base_seed: int,
+) -> dict[str, Any]:
+    items = [
+        _validation_replication(
+            model,
+            log2_samples=log2_samples,
+            seed=base_seed + index,
+        )
+        for index in range(replications)
+    ]
+    surrogate_estimates = np.array([item["surrogate_pf"] for item in items], dtype=float)
+    true_estimates = np.array([item["true_pf"] for item in items], dtype=float)
+    totals = {
+        key: int(sum(int(item[key]) for item in items))
+        for key in ("true_positive", "false_positive", "false_negative", "true_negative")
+    }
+    sensitivity_denominator = totals["true_positive"] + totals["false_negative"]
+    precision_denominator = totals["true_positive"] + totals["false_positive"]
+    surrogate_pf = float(np.mean(surrogate_estimates))
+    return {
+        "method": "independently scrambled Sobol RQMC, post-training",
+        "replications": int(replications),
+        "samples_per_replication": int(1 << log2_samples),
+        "posthoc_reference_evaluations": int(replications * (1 << log2_samples)),
+        "reference_evaluations_counted_as_absvr_calls": False,
+        "surrogate_pf_mean": surrogate_pf,
+        "surrogate_pf_standard_deviation": (
+            float(np.std(surrogate_estimates, ddof=1)) if replications > 1 else 0.0
+        ),
+        "same_points_true_pf_mean": float(np.mean(true_estimates)),
+        "relative_error_vs_independent_reference_percent": float(
+            100.0 * abs(surrogate_pf - reference_pf) / reference_pf
+        ),
+        "confusion_counts": totals,
+        "sensitivity": (
+            totals["true_positive"] / sensitivity_denominator
+            if sensitivity_denominator
+            else float("nan")
+        ),
+        "precision": (
+            totals["true_positive"] / precision_denominator
+            if precision_denominator
+            else float("nan")
+        ),
+        "individual_replications": items,
+    }
+
+
+def _summarize_runs(runs: Iterable[dict[str, Any]]) -> dict[str, Any]:
+    run_list = list(runs)
+    errors = np.array(
+        [run["validation"]["relative_error_vs_independent_reference_percent"] for run in run_list],
+        dtype=float,
+    )
+    calls = np.array([run["open_sees_limit_state_calls"] for run in run_list], dtype=float)
+    estimates = np.array(
+        [run["validation"]["surrogate_pf_mean"] for run in run_list],
+        dtype=float,
+    )
+    return {
+        "runs": len(run_list),
+        "mean_surrogate_pf": float(np.mean(estimates)),
+        "standard_deviation_surrogate_pf_across_algorithm_seeds": (
+            float(np.std(estimates, ddof=1)) if len(run_list) > 1 else 0.0
+        ),
+        "mean_relative_error_percent": float(np.mean(errors)),
+        "median_relative_error_percent": float(np.median(errors)),
+        "minimum_relative_error_percent": float(np.min(errors)),
+        "maximum_relative_error_percent": float(np.max(errors)),
+        "mean_open_sees_limit_state_calls": float(np.mean(calls)),
+        "minimum_open_sees_limit_state_calls": int(np.min(calls)),
+        "maximum_open_sees_limit_state_calls": int(np.max(calls)),
+    }
+
+
+def _problem_with_log_response() -> tuple:
+    problem = list(get_problem_definition())
+    settings = dict(problem[3])
+    settings["response"] = "log_ratio"
+    problem[3] = settings
+    return tuple(problem)
+
+
+def run_one(
+    *,
+    seed: int,
+    gradient_weight: float,
+    max_added: int,
+    pool_log2: int,
+    checkpoint_dir: Path,
+    resume: bool,
+    reference_pf: float,
+    validation_log2: int,
+    validation_replications: int,
+    validation_base_seed: int,
+    verbose: bool,
+) -> dict[str, Any]:
+    adaptive_module = importlib.import_module("absvr_core.adaptive_loop")
+    pool_size = 1 << pool_log2
+    adaptive_module.N_MCS = pool_size
+    adaptive_module.MCS_ENRICH_SIZE = pool_size
+    # The run has a fixed training budget. The extra slot lets the historical
+    # loop enter without triggering pool enrichment before that budget ends.
+    adaptive_module.MAX_MCS_POOL_SIZE = pool_size + 1
+
+    trainer = PeriodicEvidenceGridTrainer(retune_interval=20)
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    checkpoint = checkpoint_dir / (
+        f"seed_{seed}_gradient_{_gradient_label(gradient_weight)}.npz"
+    )
+    resume_source = str(checkpoint) if resume and checkpoint.exists() else None
+    result = run_adaptive_svr(
+        "eg7",
+        max_added,
+        problem_definition=_problem_with_log_response(),
+        random_seed=seed,
+        n0=15,
+        min_samples=max_added,
+        initial_design="normal_lhs",
+        svr_trainer=trainer,
+        learning_w_grad=gradient_weight,
+        checkpoint_path=str(checkpoint),
+        resume_from=resume_source,
+        checkpoint_frequency=1,
+        verbose=verbose,
+    )
+
+    state = load_checkpoint(checkpoint)
+    doe = np.asarray(state["doe"], dtype=float)
+    response = np.asarray(state["g"], dtype=float)
+    model = trainer(doe, response, doe.shape[1], kernel="gaussian")
+    validation = _validate_model(
+        model,
+        reference_pf=reference_pf,
+        log2_samples=validation_log2,
+        replications=validation_replications,
+        base_seed=validation_base_seed,
+    )
+    return {
+        "algorithm_seed": int(seed),
+        "gradient_weight": float(gradient_weight),
+        "open_sees_limit_state_calls": int(result.total_evaluations),
+        "adaptive_candidate_pool_size": int(pool_size),
+        "adaptive_pool_pf_diagnostic": float(result.probability_of_failure),
+        "evidence_history": trainer.history,
+        "validation": validation,
+        "checkpoint": checkpoint.as_posix(),
+    }
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--seeds",
+        type=_parse_int_list,
+        default=DEFAULT_SEEDS,
+        help="Comma-separated algorithm seeds.",
+    )
+    parser.add_argument(
+        "--gradient-weights",
+        type=_parse_float_list,
+        default=(0.0, 1.0),
+        help="Comma-separated gradient weights for the ablation.",
+    )
+    parser.add_argument("--max-added", type=int, default=80)
+    parser.add_argument("--pool-log2", type=int, default=17)
+    parser.add_argument("--validation-log2", type=int, default=20)
+    parser.add_argument("--validation-replications", type=int, default=16)
+    parser.add_argument("--validation-base-seed", type=int, default=20260808)
+    parser.add_argument(
+        "--reference",
+        type=Path,
+        default=Path("results/planar_truss/reference_qmc.json"),
+    )
+    parser.add_argument(
+        "--checkpoint-dir",
+        type=Path,
+        default=Path("results/planar_truss/campaign_checkpoints"),
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=Path("results/planar_truss/absvr_campaign.json"),
+    )
+    parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--verbose", action="store_true")
+    args = parser.parse_args()
+    if args.max_added < 1 or args.pool_log2 < 1:
+        raise SystemExit("Training budget and pool exponent must be positive.")
+    if args.validation_log2 < 1 or args.validation_replications < 1:
+        raise SystemExit("Validation size and replication count must be positive.")
+
+    reference_pf, reference_report = _load_reference(args.reference)
+    runs: list[dict[str, Any]] = []
+    for gradient_weight in args.gradient_weights:
+        for seed in args.seeds:
+            print(f"Running seed={seed}, gradient_weight={gradient_weight:g}")
+            run = run_one(
+                seed=seed,
+                gradient_weight=gradient_weight,
+                max_added=args.max_added,
+                pool_log2=args.pool_log2,
+                checkpoint_dir=args.checkpoint_dir,
+                resume=args.resume,
+                reference_pf=reference_pf,
+                validation_log2=args.validation_log2,
+                validation_replications=args.validation_replications,
+                validation_base_seed=args.validation_base_seed,
+                verbose=args.verbose,
+            )
+            runs.append(run)
+            print(
+                "  Pf={pf:.8g}, relative error={error:.3f}%, calls={calls}".format(
+                    pf=run["validation"]["surrogate_pf_mean"],
+                    error=run["validation"][
+                        "relative_error_vs_independent_reference_percent"
+                    ],
+                    calls=run["open_sees_limit_state_calls"],
+                )
+            )
+
+    summaries = {
+        _gradient_label(weight): _summarize_runs(
+            run for run in runs if np.isclose(run["gradient_weight"], weight)
+        )
+        for weight in args.gradient_weights
+    }
+    report = {
+        "benchmark": "published 23-bar planar truss evaluated with OpenSeesPy",
+        "selection_uses_reference_probability": False,
+        "selection_uses_validation_set": False,
+        "primary_metrics": [
+            "relative_error_vs_independent_reference_percent",
+            "open_sees_limit_state_calls",
+        ],
+        "training_protocol": {
+            "initial_design": "15-point isoprobabilistic normal LHS",
+            "response": "log(displacement_limit / abs(midspan_displacement))",
+            "response_preserves_original_failure_event": True,
+            "added_points": int(args.max_added),
+            "candidate_pool_size": int(1 << args.pool_log2),
+            "hyperparameter_selection": "periodic deterministic Bayesian-evidence grid",
+            "hyperparameter_retune_interval": 20,
+        },
+        "independent_reference": {
+            "path": args.reference.as_posix(),
+            "mean_pf": reference_pf,
+            "confidence_interval_95": reference_report.get("confidence_interval_95"),
+            "published_direct_mcs_pf": REFERENCE_FAILURE_PROBABILITY,
+        },
+        "validation_protocol": {
+            "log2_samples": int(args.validation_log2),
+            "replications": int(args.validation_replications),
+            "base_seed": int(args.validation_base_seed),
+            "posthoc_only": True,
+        },
+        "summaries_by_gradient_weight": summaries,
+        "runs": runs,
+    }
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    print(f"Wrote {args.output}")
+
+
+if __name__ == "__main__":
+    main()

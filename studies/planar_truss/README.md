@@ -56,3 +56,16 @@ python -m studies.planar_truss.run_reference_qmc \
 The direct reference calculation uses a vectorized virtual-work expression
 derived from the same truss topology. It is not used by ABSVR. Every true
 limit-state call made by the `eg7` benchmark is evaluated with OpenSeesPy.
+
+Run the repeated ABSVR campaign and its gradient-term ablation with:
+
+```bash
+python -m studies.planar_truss.run_absvr_campaign
+```
+
+The default campaign uses ten algorithm seeds, 15 initial plus 80 adaptive
+OpenSees evaluations per run, and gradient weights 0 and 1. Hyperparameters
+are selected periodically by the corrected Bayesian evidence using only the
+current design. Independent scrambled Sobol samples are used only after each
+model has been frozen. Their reference evaluations are reported explicitly
+and are not counted as calls made by ABSVR.

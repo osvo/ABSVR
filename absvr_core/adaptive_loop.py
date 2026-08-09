@@ -392,6 +392,15 @@ def run_adaptive_svr(
                 f"Checkpoint expects initial_design={stored_initial_design!r}, "
                 f"but {initial_design!r} was provided."
             )
+        trainer_state = resume_state.get("svr_trainer_state")
+        if trainer_state is not None and svr_trainer is not None:
+            restore_trainer = getattr(svr_trainer, "load_state_dict", None)
+            if restore_trainer is None:
+                raise ValueError(
+                    "Checkpoint contains custom trainer state, but svr_trainer "
+                    "does not implement load_state_dict()."
+                )
+            restore_trainer(trainer_state)
 
     def _time_phase(phase: str, func: Callable[..., Any], *func_args, **func_kwargs):
         start = perf_counter()
@@ -604,6 +613,11 @@ def run_adaptive_svr(
         }
 
     def _checkpoint_payload() -> dict[str, Any]:
+        trainer_state = None
+        if svr_trainer is not None:
+            capture_trainer = getattr(svr_trainer, "state_dict", None)
+            if capture_trainer is not None:
+                trainer_state = capture_trainer()
         return {
             "test_example": test_example,
             "args": list(args),
@@ -615,6 +629,7 @@ def run_adaptive_svr(
             "tail_policy": tail_policy,
             "tail_alpha": float(tail_alpha),
             "initial_design": initial_design,
+            "svr_trainer_state": trainer_state,
 
             "learning_w_grad": float(learning_w_grad),
             "svr_bounds_mode": svr_bounds_mode,
