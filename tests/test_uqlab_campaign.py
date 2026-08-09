@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json
 
 import pytest
 
-from studies.planar_truss.run_uqlab_campaign import summarize_results
+from studies.planar_truss.run_uqlab_campaign import DEFAULT_SEEDS, summarize_results
 
 
 def _result(seed: int, pf: float, calls: int = 100) -> dict:
@@ -88,3 +89,17 @@ def test_original_profile_uses_uqlab_native_akmcs_stop_u() -> None:
     assert "analysisOptions.Method = 'AKMCS';" in wrapper
     assert "analysisOptions.AKMCS.Convergence = 'stopU';" in wrapper
     assert "analysisOptions.AKMCS.ConvThres" not in wrapper
+
+
+def test_default_seeds_match_frozen_confirmation_protocol() -> None:
+    protocol_path = (
+        Path(__file__).parents[1]
+        / "studies"
+        / "planar_truss"
+        / "uqlab_confirmation_protocol.json"
+    )
+    protocol = json.loads(protocol_path.read_text(encoding="utf-8"))
+
+    assert protocol["status"] == "frozen_before_confirmation"
+    assert tuple(protocol["algorithm_seeds"]) == DEFAULT_SEEDS
+    assert protocol["development_seed_excluded"] not in DEFAULT_SEEDS

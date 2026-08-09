@@ -1,0 +1,26 @@
+{
+  "algorithm_seeds": [
+    127
+  ],
+  "convergence": {
+    "criterion": "stopU",
+    "iterations": 1,
+    "threshold": 2.0
+  },
+  "initial_design": {
+    "sampling": "LHS",
+    "size": 30
+  },
+  "internal_mcs_size": 1000000,
+  "kriging_covariance": "Gaussian",
+  "learning_function": "U",
+  "matlab_executable": "C:\\Program Files\\MATLAB\\R2025b\\bin\\matlab.exe",
+  "max_candidate_size": 1000000,
+  "profile": "original_akmcs",
+  "runs_expected": 1,
+  "schema_version": 1,
+  "selection_uses_reference_probability": false,
+  "selection_uses_validation_set": false,
+  "uqlab_core": "C:\\Users\\osvo\\Documents\\Codex\\2026-08-08\\us\\work\\UQLab_Rel2.1.0\\core",
+  "uqlab_reliability_method": "AKMCS"
+}

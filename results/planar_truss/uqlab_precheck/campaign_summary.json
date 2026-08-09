@@ -1,0 +1,100 @@
+{
+  "algorithm_seeds": [
+    127
+  ],
+  "beta_from_mean_pf": null,
+  "beta_from_mean_pf_is_infinite": true,
+  "independent_rqmc_reference_pf": 0.0015082359313964844,
+  "individual_runs": [
+    {
+      "beta": null,
+      "beta_ci": [
+        null,
+        null
+      ],
+      "comparability_note": "Direct UQLab run with the published probabilistic model and OpenSees. The 2018 initial design was sampled uniformly in an insufficiently specified ball; this local run uses a disclosed LHS and is paper-like, not an exact reproduction of the published run.",
+      "convergence": "StopPfBound",
+      "convergence_iterations": 2,
+      "convergence_threshold": 0.1,
+      "cov": null,
+      "initial_design": {
+        "sampling": "LHS",
+        "size": 30
+      },
+      "input_order": [
+        "A1",
+        "A2",
+        "E1",
+        "E2",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6"
+      ],
+      "internal_mcs_size": 1000000.0,
+      "kriging_covariance": "Gaussian",
+      "learning_function": "U",
+      "ledger_file": "C:\\Users\\osvo\\Documents\\Codex\\2026-08-08\\us\\work\\ABSVR-benchmark\\results\\planar_truss\\uqlab_precheck\\uqlab_paper_like_seed_127_calls.jsonl",
+      "matlab_release": "2025b",
+      "matlab_version": "25.2.0.3123386 (R2025b) Update 3",
+      "max_candidate_size": 1000000.0,
+      "method": "UQLab ALR / AK-MCS",
+      "model_evaluations_opensees_ledger": 31,
+      "model_evaluations_uqlab": 31,
+      "pf": 0,
+      "pf_ci": [
+        null,
+        null
+      ],
+      "profile": "paper_like",
+      "schema_version": 1,
+      "seed": 127,
+      "uqlab_entrypoint": "C:\\Users\\osvo\\Documents\\Codex\\2026-08-08\\us\\work\\UQLab_Rel2.1.0\\core\\uqlab.m"
+    }
+  ],
+  "maximum_absolute_run_error_vs_independent_rqmc_percent": 100.0,
+  "maximum_open_sees_calls": 31,
+  "mean_absolute_run_error_vs_independent_rqmc_percent": 100.0,
+  "mean_open_sees_calls": 31.0,
+  "mean_pf": 0.0,
+  "median_absolute_run_error_vs_independent_rqmc_percent": 100.0,
+  "method": "direct UQLab ALR / AK-MCS with OpenSeesPy",
+  "minimum_open_sees_calls": 31,
+  "profile": "paper_like",
+  "protocol": {
+    "algorithm_seeds": [
+      127
+    ],
+    "convergence": {
+      "criterion": "StopPfBound",
+      "iterations": 2,
+      "threshold": 0.1
+    },
+    "initial_design": {
+      "sampling": "LHS",
+      "size": 30
+    },
+    "internal_mcs_size": 1000000,
+    "kriging_covariance": "Gaussian",
+    "learning_function": "U",
+    "matlab_executable": "C:\\Program Files\\MATLAB\\R2025b\\bin\\matlab.exe",
+    "max_candidate_size": 1000000,
+    "profile": "paper_like",
+    "runs_expected": 1,
+    "schema_version": 1,
+    "selection_uses_reference_probability": false,
+    "selection_uses_validation_set": false,
+    "uqlab_core": "C:\\Users\\osvo\\Documents\\Codex\\2026-08-08\\us\\work\\UQLab_Rel2.1.0\\core"
+  },
+  "published_direct_mcs_reference_pf": 0.00152,
+  "relative_error_of_mean_vs_independent_rqmc_percent": 100.0,
+  "relative_error_of_mean_vs_published_mcs_percent": 99.99999999999999,
+  "runs": 1,
+  "schema_version": 1,
+  "selection_uses_reference_probability": false,
+  "selection_uses_validation_set": false,
+  "standard_deviation_pf_across_seeds": 0.0,
+  "total_open_sees_calls": 31
+}

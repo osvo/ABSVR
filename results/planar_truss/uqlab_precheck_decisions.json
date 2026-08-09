@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "purpose": "Development-only profile checks completed before freezing the UQLab confirmation campaign",
+  "decisions": [
+    {
+      "profile": "paper_like",
+      "seed": 127,
+      "status": "rejected",
+      "failure_probability": 0.0,
+      "open_sees_calls": 31,
+      "reason": "StopPfBound declared convergence after one enrichment point with a degenerate zero failure probability."
+    },
+    {
+      "profile": "ALR_StopLF_emulation",
+      "seed": 127,
+      "status": "aborted_and_rejected",
+      "open_sees_calls_before_abort": 391,
+      "reason": "Source audit showed that ALR StopLF uses signed learning-function conventions and is not the native original AK-MCS stopU implementation."
+    },
+    {
+      "profile": "original_akmcs",
+      "seed": 127,
+      "status": "accepted_for_profile_selection_only",
+      "failure_probability": 0.001502,
+      "relative_error_vs_independent_rqmc_percent": 0.413458615238692,
+      "open_sees_calls": 387,
+      "uqlab_ledger_call_count_match": true,
+      "reason": "The native UQLab AKMCS method converged with stopU, produced a non-degenerate accurate estimate, and reconciled every true call. This seed is excluded from confirmation."
+    }
+  ],
+  "frozen_confirmation_seeds": [139, 151, 163, 179, 191, 211, 223, 239, 251, 269]
+}

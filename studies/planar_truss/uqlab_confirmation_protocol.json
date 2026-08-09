@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "status": "frozen_before_confirmation",
+  "profile": "original_akmcs",
+  "uqlab_version": "2.1.0",
+  "uqlab_reliability_method": "AKMCS",
+  "algorithm_seeds": [139, 151, 163, 179, 191, 211, 223, 239, 251, 269],
+  "development_seed_excluded": 127,
+  "runs_expected": 10,
+  "initial_design": {
+    "sampling": "LHS",
+    "size": 30
+  },
+  "metamodel": "Kriging",
+  "kriging_covariance": "Gaussian",
+  "learning_function": "U",
+  "convergence": {
+    "criterion": "stopU",
+    "threshold": 2.0,
+    "definition": "min(abs(kriging_mean / kriging_standard_deviation)) >= 2"
+  },
+  "internal_mcs_size": 1000000,
+  "maximum_added_design_points": 970,
+  "selection_uses_reference_probability": false,
+  "selection_uses_validation_set": false,
+  "true_call_definition": "Every OpenSeesPy limit-state evaluation, including the initial design",
+  "acceptance": {
+    "require_all_frozen_seeds": true,
+    "require_non_degenerate_probability": true,
+    "require_uqlab_ledger_call_count_match": true,
+    "discard_based_on_relative_error": false
+  }
+}

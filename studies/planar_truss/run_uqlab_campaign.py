@@ -14,7 +14,7 @@ from typing import Any, Sequence
 import numpy as np
 
 
-DEFAULT_SEEDS = (11, 19, 31, 43, 53, 67, 79, 89, 101, 113)
+DEFAULT_SEEDS = (139, 151, 163, 179, 191, 211, 223, 239, 251, 269)
 DEFAULT_REFERENCE = Path("results/planar_truss/reference_qmc.json")
 DEFAULT_OUTPUT_DIRECTORY = Path("results/planar_truss/uqlab")
 

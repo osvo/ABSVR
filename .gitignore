@@ -18,6 +18,7 @@ venv/
 absvr_cache/
 Log_uq_selftest.txt
 results/planar_truss/*checkpoints/
+results/planar_truss/uqlab*/uqlab_*.mat
 results/planar_truss/diagnostic_*
 results/planar_truss/pilot_*
 results/planar_truss/precheck_*
