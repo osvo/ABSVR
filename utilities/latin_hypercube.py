@@ -1,6 +1,7 @@
 """Random sampling utilities for Latin hypercube sampling."""
 
 import numpy as np
+from scipy import stats
 
 from .random_stream import global_random_state
 
@@ -41,4 +42,44 @@ def lhs_uniform(mean: np.ndarray, sigma: np.ndarray, n_samples: int) -> tuple:
     pdf_value = float(1.0 / np.prod(width))
     pdf = np.full(n_samples, pdf_value)
 
+    return samples, pdf
+
+
+def lhs_normal(mean: np.ndarray, sigma: np.ndarray, n_samples: int) -> tuple:
+    """Generate a Latin hypercube mapped to independent normal marginals.
+
+    The stratification is performed in probability space and then mapped with
+    the inverse normal CDF.  Consequently, this is an isoprobabilistic LHS for
+    the distribution supplied to the reliability problem, rather than a
+    truncation to a finite box.
+    """
+
+    mean = np.asarray(mean, dtype=float)
+    sigma = np.asarray(sigma, dtype=float)
+    if mean.shape != sigma.shape:
+        raise ValueError("mean and sigma must have matching shapes")
+    if np.any(sigma <= 0.0):
+        raise ValueError("sigma must contain only positive values")
+    if int(n_samples) != n_samples or n_samples <= 0:
+        raise ValueError("n_samples must be a positive integer")
+
+    n_samples = int(n_samples)
+    dimension = mean.size
+    rng = global_random_state()
+    jitter = rng.random_sample((n_samples, dimension))
+    strata = (np.arange(n_samples)[:, None] + jitter) / n_samples
+
+    probabilities = np.empty_like(strata)
+    for j in range(dimension):
+        probabilities[:, j] = strata[_randperm(rng, n_samples), j]
+
+    probabilities = np.clip(
+        probabilities,
+        np.finfo(float).tiny,
+        1.0 - np.finfo(float).eps,
+    )
+    standard = stats.norm.ppf(probabilities)
+    samples = mean + sigma * standard
+    marginal_pdf = stats.norm.pdf(standard) / sigma
+    pdf = np.prod(marginal_pdf, axis=1)
     return samples, pdf

@@ -27,6 +27,7 @@ def ensure_results_dir() -> Path:
 
 __all__ = [
     "maybe_print_memory_usage",
+    "lhs_normal",
     "lhs_uniform",
     "global_random_state",
     "reset_global_seed",
@@ -40,6 +41,7 @@ __all__ = [
 
 _MODULE_MAP = {
     "maybe_print_memory_usage": "utilities.memory",
+    "lhs_normal": "utilities.latin_hypercube",
     "lhs_uniform": "utilities.latin_hypercube",
     "global_random_state": "utilities.random_stream",
     "reset_global_seed": "utilities.random_stream",

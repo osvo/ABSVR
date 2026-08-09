@@ -245,13 +245,21 @@ def midspan_displacement_opensees(physical_inputs: np.ndarray) -> np.ndarray | f
 
 
 def planar_truss_limit_state(z: np.ndarray, params: Mapping[str, object] | None = None) -> np.ndarray:
-    """Return ``g = displacement_limit - abs(midspan_displacement)`` in metres."""
+    """Return an equivalent midspan-displacement limit-state response.
+
+    ``response='difference'`` (the default) returns the conventional response
+    ``limit - abs(displacement)`` in metres. ``response='log_ratio'`` returns
+    ``log(limit / abs(displacement))``.  Both responses have exactly the same
+    zero contour and failure classification; the logarithmic form only changes
+    the regression target presented to a surrogate.
+    """
 
     settings = dict(params or {})
     displacement_limit = float(
         settings.get("displacement_limit_m", DEFAULT_DISPLACEMENT_LIMIT_M)
     )
     solver = str(settings.get("solver", "opensees")).strip().lower()
+    response = str(settings.get("response", "difference")).strip().lower()
     physical = standard_normal_to_physical(z)
     physical_2d, _ = _as_2d(physical)
 
@@ -264,7 +272,12 @@ def planar_truss_limit_state(z: np.ndarray, params: Mapping[str, object] | None 
     else:
         raise ValueError("solver must be 'opensees', 'numpy', or 'vectorized'.")
 
-    return displacement_limit - np.abs(displacement).reshape(-1)
+    absolute_displacement = np.abs(displacement).reshape(-1)
+    if response == "difference":
+        return displacement_limit - absolute_displacement
+    if response == "log_ratio":
+        return np.log(displacement_limit / absolute_displacement)
+    raise ValueError("response must be 'difference' or 'log_ratio'.")
 
 
 def get_problem_definition() -> tuple:

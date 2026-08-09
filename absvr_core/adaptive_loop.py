@@ -20,7 +20,13 @@ try:
     )
     from surrogate.svr.kernel_utils import normalize_kernel_name
     from sampling import SobolNormalSampler
-    from utilities import global_random_state, lhs_uniform, maybe_print_memory_usage, reset_global_seed
+    from utilities import (
+        global_random_state,
+        lhs_normal,
+        lhs_uniform,
+        maybe_print_memory_usage,
+        reset_global_seed,
+    )
     from .ood_scoring import apply_tail_policy, score_standard_distance
 except ImportError:
     from ..surrogate.svr import (
@@ -31,7 +37,13 @@ except ImportError:
     )
     from ..surrogate.svr.kernel_utils import normalize_kernel_name
     from ..sampling import SobolNormalSampler
-    from ..utilities import global_random_state, lhs_uniform, maybe_print_memory_usage, reset_global_seed
+    from ..utilities import (
+        global_random_state,
+        lhs_normal,
+        lhs_uniform,
+        maybe_print_memory_usage,
+        reset_global_seed,
+    )
     from ..absvr_core.ood_scoring import (
         apply_tail_policy,
         score_standard_distance,
@@ -202,6 +214,8 @@ def run_adaptive_svr(
     c_init: float | None = None,
     epsilon_init: float | None = None,
     min_samples: int = 0,
+    initial_design: str = "uniform_box",
+    svr_trainer: Callable[..., dict[str, Any]] | None = None,
     pruning_callback: Callable[[float, int], bool] | None = None,
     verbose: bool = True,
 ) -> AdaptiveSVRResult:
@@ -259,6 +273,17 @@ def run_adaptive_svr(
         Initial SVR regularization parameter C. Higher values = less regularization.
     epsilon_init:
         Initial ε-insensitive tube width. Larger values ignore small errors.
+    min_samples:
+        Minimum number of adaptively added points before stability may stop the
+        run. Values below the built-in burn-in retain the historical behaviour.
+    initial_design:
+        ``"uniform_box"`` preserves the historical finite-box LHS;
+        ``"normal_lhs"`` stratifies the probability space of independent
+        normal variables before applying any distribution transform.
+    svr_trainer:
+        Optional drop-in replacement for :func:`train_svr`, used for a single
+        standard model. This enables auditable deterministic tuning policies
+        without changing the historical trainer used by default.
     pruning_callback:
         Function called as callback(pf, step) -> bool. If True, stops execution.
     """
@@ -268,6 +293,13 @@ def run_adaptive_svr(
 
     if checkpoint_frequency <= 0:
         raise ValueError("checkpoint_frequency must be a positive integer.")
+
+    initial_design = str(initial_design).strip().lower()
+    if initial_design not in {"uniform_box", "normal_lhs"}:
+        raise ValueError("initial_design must be 'uniform_box' or 'normal_lhs'.")
+    if svr_trainer is not None and int(ensemble_size) != 1:
+        raise ValueError("A custom svr_trainer cannot be combined with an ensemble.")
+    trainer = svr_trainer or train_svr
 
     checkpoint_target = Path(checkpoint_path).expanduser() if checkpoint_path else None
     resume_source = Path(resume_from).expanduser() if resume_from else None
@@ -351,6 +383,14 @@ def run_adaptive_svr(
         if not np.isclose(stored_tail_alpha, tail_alpha, atol=1e-9, rtol=1e-6):
             raise ValueError(
                 f"Checkpoint expects tail_alpha={stored_tail_alpha}, but {tail_alpha} was provided."
+            )
+        stored_initial_design = str(
+            resume_state.get("initial_design", initial_design)
+        ).lower()
+        if stored_initial_design != initial_design:
+            raise ValueError(
+                f"Checkpoint expects initial_design={stored_initial_design!r}, "
+                f"but {initial_design!r} was provided."
             )
 
     def _time_phase(phase: str, func: Callable[..., Any], *func_args, **func_kwargs):
@@ -436,7 +476,10 @@ def run_adaptive_svr(
         # (Loeppky et al. 2009, Bourinet 2016).
         if n0 <= 0:
             n0 = max(15, 2 * n_dim + 1)
-        doe_z, _ = lhs_uniform(mu_x, vm * sigma_x, n0)
+        if initial_design == "normal_lhs":
+            doe_z, _ = lhs_normal(mu_x, sigma_x, n0)
+        else:
+            doe_z, _ = lhs_uniform(mu_x, vm * sigma_x, n0)
         doe = _transform_samples(doe_z)
         design_eval_start = perf_counter()
         g = np.asarray(fun(doe, fun_par), dtype=float).reshape(-1)
@@ -571,6 +614,7 @@ def run_adaptive_svr(
             "n_workers": None if n_workers is None else int(n_workers),
             "tail_policy": tail_policy,
             "tail_alpha": float(tail_alpha),
+            "initial_design": initial_design,
 
             "learning_w_grad": float(learning_w_grad),
             "svr_bounds_mode": svr_bounds_mode,
@@ -656,7 +700,7 @@ def run_adaptive_svr(
             else:
                 primary_model = _time_phase(
                     "model_training",
-                    train_svr,
+                    trainer,
                     doe_svr,
                     g,
                     svr_dim,
@@ -714,7 +758,8 @@ def run_adaptive_svr(
             phase_timings["stopping_checks"] = phase_timings.get("stopping_checks", 0.0) + stop_duration
             phase_counts["stopping_checks"] = phase_counts.get("stopping_checks", 0) + 1
 
-            converged = (n_samples_added >= MIN_BURN_IN) and stability
+            required_samples = max(MIN_BURN_IN, int(min_samples))
+            converged = (n_samples_added >= required_samples) and stability
             if converged or (n_samples_added >= max_iter):
                 if n_samples_added >= max_iter and not converged:
                     if verbose:

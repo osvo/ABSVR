@@ -80,6 +80,29 @@ def test_limit_state_solver_paths_are_equivalent() -> None:
     assert g_opensees[1] < 0.0
 
 
+def test_log_ratio_response_preserves_failure_event() -> None:
+    from scipy.special import ndtri
+
+    unit = qmc.Sobol(d=10, scramble=True, seed=271828).random_base2(8)
+    z = ndtri(np.clip(unit, np.finfo(float).tiny, 1.0 - np.finfo(float).eps))
+    difference = planar_truss_limit_state(
+        z,
+        {"solver": "vectorized", "response": "difference"},
+    )
+    log_ratio = planar_truss_limit_state(
+        z,
+        {"solver": "vectorized", "response": "log_ratio"},
+    )
+
+    np.testing.assert_array_equal(difference <= 0.0, log_ratio <= 0.0)
+    np.testing.assert_allclose(
+        log_ratio,
+        np.log(1.0 + difference / (0.12 - difference)),
+        rtol=1.0e-14,
+        atol=1.0e-14,
+    )
+
+
 def test_eg7_problem_definition_uses_standard_normal_space() -> None:
     mu, sigma, n_dim, params, function, pf_ref, distribution = prepare_problem_definition("eg7")
     np.testing.assert_array_equal(mu, np.zeros(10))
