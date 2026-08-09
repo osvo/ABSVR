@@ -21,6 +21,9 @@ results/planar_truss/diagnostic_*
 results/planar_truss/pilot_*
 results/planar_truss/precheck_*
 results/planar_truss/smoke_*
+results/corrected_historical/runs/
+results/corrected_historical/checkpoints/
+results/corrected_historical_smoke*/
 
 # OS
 .DS_Store
