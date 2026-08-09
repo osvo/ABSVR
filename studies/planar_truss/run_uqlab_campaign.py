@@ -105,12 +105,17 @@ def summarize_results(
         raise ValueError("All results must use the frozen campaign profile.")
 
     estimates = np.array([result["pf"] for result in results], dtype=float)
+    if not np.all(np.isfinite(estimates)) or np.any((estimates < 0.0) | (estimates > 1.0)):
+        raise ValueError("Every failure-probability estimate must be finite and in [0, 1].")
     calls = np.array(
         [result["model_evaluations_opensees_ledger"] for result in results],
         dtype=int,
     )
     individual_errors = 100.0 * np.abs(estimates - reference_pf) / reference_pf
     mean_pf = float(np.mean(estimates))
+    beta_from_mean_pf = (
+        -NormalDist().inv_cdf(mean_pf) if 0.0 < mean_pf < 1.0 else None
+    )
     return {
         "schema_version": 1,
         "method": "direct UQLab ALR / AK-MCS with OpenSeesPy",
@@ -120,7 +125,8 @@ def summarize_results(
         "algorithm_seeds": list(seeds),
         "runs": len(results),
         "mean_pf": mean_pf,
-        "beta_from_mean_pf": -NormalDist().inv_cdf(mean_pf),
+        "beta_from_mean_pf": beta_from_mean_pf,
+        "beta_from_mean_pf_is_infinite": mean_pf in (0.0, 1.0),
         "standard_deviation_pf_across_seeds": (
             float(np.std(estimates, ddof=1)) if len(results) > 1 else 0.0
         ),

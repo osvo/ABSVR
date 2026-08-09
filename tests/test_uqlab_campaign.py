@@ -45,3 +45,30 @@ def test_summary_refuses_missing_or_reordered_seed() -> None:
             published_pf=0.00152,
         )
 
+
+@pytest.mark.parametrize("pf", [0.0, 1.0])
+def test_summary_serializes_endpoint_probability_without_nonstandard_float(
+    pf: float,
+) -> None:
+    summary = summarize_results(
+        [_result(11, pf, 31)],
+        seeds=(11,),
+        profile="paper_like",
+        reference_pf=0.0015,
+        published_pf=0.00152,
+    )
+
+    assert summary["beta_from_mean_pf"] is None
+    assert summary["beta_from_mean_pf_is_infinite"] is True
+
+
+@pytest.mark.parametrize("pf", [-0.1, 1.1, float("nan"), float("inf")])
+def test_summary_refuses_invalid_failure_probability(pf: float) -> None:
+    with pytest.raises(ValueError, match=r"finite and in \[0, 1\]"):
+        summarize_results(
+            [_result(11, pf)],
+            seeds=(11,),
+            profile="paper_like",
+            reference_pf=0.0015,
+            published_pf=0.00152,
+        )
