@@ -1,0 +1,8 @@
+method,pf,beta,mean_model_evaluations,relative_error_percent,source
+MCS,0.001520,2.96,1000000,0.00,Marelli and Sudret (2018)
+FORM,0.000760,3.17,160,50.00,Marelli and Sudret (2018)
+SORM,0.001630,2.94,372,7.24,Marelli and Sudret (2018)
+AK-MCS,0.001520,2.96,300,0.00,Marelli and Sudret (2018)
+A-bPCE,0.001480,2.97,129,2.63,Marelli and Sudret (2018)
+ABSVR1,0.001538,2.961,57.8,1.18,Wang et al. (2021)
+ABSVR2,0.001512,2.965,54.9,0.53,Wang et al. (2021)

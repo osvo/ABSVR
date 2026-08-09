@@ -1,0 +1,114 @@
+{
+  "method": "randomized Sobol QMC with independent scrambles",
+  "replications": 16,
+  "samples_per_replication": 1048576,
+  "total_limit_state_evaluations": 16777216,
+  "mean_pf": 0.0015082359313964844,
+  "standard_deviation_across_scrambles": 1.1326931885117923e-05,
+  "standard_error_of_mean": 2.831732971279481e-06,
+  "confidence_interval_95": [
+    0.0015022002354417054,
+    0.0015142716273512634
+  ],
+  "beta_from_mean_pf": 2.9660543408870956,
+  "published_pf": 0.00152,
+  "relative_difference_from_published_percent": 0.773951881810244,
+  "individual_replications": [
+    {
+      "seed": 20260808,
+      "samples": 1048576,
+      "failures": 1588,
+      "pf": 0.001514434814453125
+    },
+    {
+      "seed": 20260809,
+      "samples": 1048576,
+      "failures": 1580,
+      "pf": 0.001506805419921875
+    },
+    {
+      "seed": 20260810,
+      "samples": 1048576,
+      "failures": 1587,
+      "pf": 0.0015134811401367188
+    },
+    {
+      "seed": 20260811,
+      "samples": 1048576,
+      "failures": 1591,
+      "pf": 0.0015172958374023438
+    },
+    {
+      "seed": 20260812,
+      "samples": 1048576,
+      "failures": 1590,
+      "pf": 0.0015163421630859375
+    },
+    {
+      "seed": 20260813,
+      "samples": 1048576,
+      "failures": 1583,
+      "pf": 0.0015096664428710938
+    },
+    {
+      "seed": 20260814,
+      "samples": 1048576,
+      "failures": 1592,
+      "pf": 0.00151824951171875
+    },
+    {
+      "seed": 20260815,
+      "samples": 1048576,
+      "failures": 1571,
+      "pf": 0.0014982223510742188
+    },
+    {
+      "seed": 20260816,
+      "samples": 1048576,
+      "failures": 1583,
+      "pf": 0.0015096664428710938
+    },
+    {
+      "seed": 20260817,
+      "samples": 1048576,
+      "failures": 1579,
+      "pf": 0.0015058517456054688
+    },
+    {
+      "seed": 20260818,
+      "samples": 1048576,
+      "failures": 1559,
+      "pf": 0.0014867782592773438
+    },
+    {
+      "seed": 20260819,
+      "samples": 1048576,
+      "failures": 1576,
+      "pf": 0.00150299072265625
+    },
+    {
+      "seed": 20260820,
+      "samples": 1048576,
+      "failures": 1596,
+      "pf": 0.001522064208984375
+    },
+    {
+      "seed": 20260821,
+      "samples": 1048576,
+      "failures": 1560,
+      "pf": 0.00148773193359375
+    },
+    {
+      "seed": 20260822,
+      "samples": 1048576,
+      "failures": 1570,
+      "pf": 0.0014972686767578125
+    },
+    {
+      "seed": 20260823,
+      "samples": 1048576,
+      "failures": 1599,
+      "pf": 0.0015249252319335938
+    }
+  ]
+}

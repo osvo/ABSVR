@@ -1,0 +1,10 @@
+{
+  "seed": 20260808,
+  "random_cases": 100,
+  "node_count": 13,
+  "member_count": 23,
+  "mean_input_displacement_m": 0.07783611624891458,
+  "max_relative_error_opensees_vs_numpy": 4.5302343425152396e-14,
+  "max_relative_error_vectorized_vs_numpy": 2.021341772978889e-14,
+  "passed": true
+}

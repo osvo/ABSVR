@@ -1,0 +1,58 @@
+# Published 23-bar planar-truss benchmark
+
+This study reproduces the simply supported Warren truss used as a structural
+reliability benchmark by Schobi et al. (2017), Marelli and Sudret (2018), and
+Wang et al. (2021). The structure has 13 nodes, 23 linear truss elements, a
+24 m span, and a 2 m height. Six independent vertical loads act on the upper
+nodes. Failure is a downward midspan displacement of at least 0.12 m.
+
+## Published probabilistic model
+
+| Variables | Distribution | Mean | Standard deviation |
+|---|---:|---:|---:|
+| E1, E2 (Pa) | Lognormal | 2.1e11 | 2.1e10 |
+| A1 (m2) | Lognormal | 2.0e-3 | 2.0e-4 |
+| A2 (m2) | Lognormal | 1.0e-3 | 1.0e-4 |
+| P1, ..., P6 (N) | Gumbel | 5.0e4 | 7.5e3 |
+
+All variables are independent. ABSVR samples independent standard-normal
+coordinates and the benchmark applies the corresponding isoprobabilistic
+transform before each finite-element evaluation.
+
+## Traceable sources
+
+- Schobi, Sudret, and Marelli (2017), *Rare Event Estimation Using
+  Polynomial-Chaos Kriging*, DOI: 10.1061/AJRUA6.0000870.
+- Marelli and Sudret (2018), *An active-learning algorithm that combines
+  sparse polynomial chaos expansions and bootstrap for structural reliability
+  analysis*, DOI: 10.1016/j.strusafe.2018.06.003.
+- Wang et al. (2021), *Efficient structural reliability analysis based on
+  adaptive Bayesian support vector regression*, DOI:
+  10.1016/j.cma.2021.114172.
+
+The published reference is `Pf = 1.52e-3` from one million direct Monte Carlo
+evaluations. `literature_results.csv` records the comparison values reported in
+Table 8 of Wang et al. (2021).
+
+## Reproduction
+
+Install the optional finite-element dependency and run the verification:
+
+```bash
+pip install -r requirements-structural.txt
+python -m studies.planar_truss.verify_model
+pytest -q tests/test_planar_truss_opensees.py
+```
+
+Estimate an independent randomized-QMC reference using 16 Sobol scrambles of
+2^20 samples each:
+
+```bash
+python -m studies.planar_truss.run_reference_qmc \
+  --log2-samples 20 --replications 16 \
+  --output results/planar_truss/reference_qmc.json
+```
+
+The direct reference calculation uses a vectorized virtual-work expression
+derived from the same truss topology. It is not used by ABSVR. Every true
+limit-state call made by the `eg7` benchmark is evaluated with OpenSeesPy.
