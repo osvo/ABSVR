@@ -72,6 +72,11 @@ current design. Independent scrambled Sobol samples are used only after each
 model has been frozen. Their reference evaluations are reported explicitly
 and are not counted as calls made by ABSVR.
 
+For diagnostics with the historical loss, the runner also exposes
+`--hyperparameter-selection cross_validation`. This deterministic five-fold
+selector uses only held-out responses from the current DOE and never the
+reference failure probability.
+
 Audit a frozen confirmation campaign and regenerate the state-of-the-art
 comparison table with:
 

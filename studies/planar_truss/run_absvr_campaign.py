@@ -19,7 +19,11 @@ from benchmarks.planar_truss_opensees import (
     get_problem_definition,
     planar_truss_limit_state,
 )
-from surrogate.svr import PeriodicEvidenceGridTrainer, svr_predict
+from surrogate.svr import (
+    PeriodicCrossValidationGridTrainer,
+    PeriodicEvidenceGridTrainer,
+    svr_predict,
+)
 from surrogate.svr.loss_utils import normalize_loss
 
 
@@ -198,6 +202,7 @@ def run_one(
     validation_base_seed: int,
     verbose: bool,
     loss: str,
+    hyperparameter_selection: str,
 ) -> dict[str, Any]:
     adaptive_module = importlib.import_module("absvr_core.adaptive_loop")
     pool_size = 1 << pool_log2
@@ -206,10 +211,14 @@ def run_one(
     # The campaign uses a fixed candidate population for every algorithm seed.
     adaptive_module.MAX_MCS_POOL_SIZE = pool_size
 
-    trainer = PeriodicEvidenceGridTrainer(retune_interval=20, loss=loss)
+    if hyperparameter_selection == "cross_validation":
+        trainer = PeriodicCrossValidationGridTrainer(retune_interval=20, loss=loss)
+    else:
+        trainer = PeriodicEvidenceGridTrainer(retune_interval=20, loss=loss)
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     checkpoint = checkpoint_dir / (
-        f"seed_{seed}_gradient_{_gradient_label(gradient_weight)}_loss_{loss}.npz"
+        f"seed_{seed}_gradient_{_gradient_label(gradient_weight)}_loss_{loss}_"
+        f"tuning_{hyperparameter_selection}.npz"
     )
     resume_source = str(checkpoint) if resume and checkpoint.exists() else None
     result = run_adaptive_svr(
@@ -243,6 +252,7 @@ def run_one(
         "algorithm_seed": int(seed),
         "gradient_weight": float(gradient_weight),
         "svr_loss": loss,
+        "hyperparameter_selection": hyperparameter_selection,
         "open_sees_limit_state_calls": int(result.total_evaluations),
         "adaptive_candidate_pool_size": int(pool_size),
         "adaptive_pool_pf_diagnostic": float(result.probability_of_failure),
@@ -268,6 +278,11 @@ def main() -> None:
     )
     parser.add_argument("--max-added", type=int, default=80)
     parser.add_argument("--loss", default="squared_epsilon")
+    parser.add_argument(
+        "--hyperparameter-selection",
+        choices=("evidence", "cross_validation"),
+        default="evidence",
+    )
     parser.add_argument(
         "--campaign-stage",
         choices=("development", "confirmation"),
@@ -336,6 +351,7 @@ def main() -> None:
                 validation_base_seed=args.validation_base_seed,
                 verbose=args.verbose,
                 loss=args.loss,
+                hyperparameter_selection=args.hyperparameter_selection,
             )
             runs.append(run)
             print(
@@ -375,7 +391,11 @@ def main() -> None:
             "response_preserves_original_failure_event": True,
             "added_points": int(args.max_added),
             "candidate_pool_size": int(1 << args.pool_log2),
-            "hyperparameter_selection": "periodic deterministic Bayesian-evidence grid",
+            "hyperparameter_selection": (
+                "periodic deterministic cross-validated grid"
+                if args.hyperparameter_selection == "cross_validation"
+                else "periodic deterministic Bayesian-evidence grid"
+            ),
             "hyperparameter_retune_interval": 20,
             "svr_loss": args.loss,
         },

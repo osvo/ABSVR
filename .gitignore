@@ -28,6 +28,7 @@ results/planar_truss/squared_option_development3.json
 results/corrected_historical/runs/
 results/corrected_historical/checkpoints/
 results/corrected_historical_smoke*/
+results/consistent_historical*/checkpoints/
 
 # OS
 .DS_Store

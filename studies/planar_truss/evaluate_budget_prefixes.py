@@ -84,8 +84,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     runs: list[dict[str, Any]] = []
     for seed in args.seeds:
         checkpoint = args.checkpoint_dir / (
-            f"seed_{seed}_gradient_{_gradient_label(args.gradient_weight)}_loss_{loss}.npz"
+            f"seed_{seed}_gradient_{_gradient_label(args.gradient_weight)}_loss_{loss}_"
+            "tuning_evidence.npz"
         )
+        if not checkpoint.is_file():
+            checkpoint = args.checkpoint_dir / (
+                f"seed_{seed}_gradient_{_gradient_label(args.gradient_weight)}_loss_{loss}.npz"
+            )
         if not checkpoint.is_file():
             raise FileNotFoundError(f"Missing completed checkpoint: {checkpoint}")
         state = load_checkpoint(checkpoint)
