@@ -21,6 +21,10 @@ results/planar_truss/diagnostic_*
 results/planar_truss/pilot_*
 results/planar_truss/precheck_*
 results/planar_truss/smoke_*
+results/planar_truss/development_budget_curve.json
+results/planar_truss/final_core_smoke.json
+results/planar_truss/squared_option_smoke.json
+results/planar_truss/squared_option_development3.json
 results/corrected_historical/runs/
 results/corrected_historical/checkpoints/
 results/corrected_historical_smoke*/

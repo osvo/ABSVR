@@ -24,6 +24,17 @@ def audit_campaign(campaign: dict[str, Any], reference: dict[str, Any]) -> dict[
     if protocol.get("response_preserves_original_failure_event") is not True:
         raise ValueError("Campaign response must preserve the original failure event.")
     schema_version = int(campaign.get("schema_version", 1))
+    if schema_version >= 2 and campaign.get("campaign_stage") == "confirmation":
+        if campaign.get("configuration_development_used_reference_probability") is not True:
+            raise ValueError("Confirmation must disclose reference-aware development.")
+        development_seeds = {
+            int(seed) for seed in campaign.get("development_algorithm_seeds", [])
+        }
+        confirmation_seeds = {int(run["algorithm_seed"]) for run in campaign["runs"]}
+        if not development_seeds:
+            raise ValueError("Confirmation must declare its development seeds.")
+        if development_seeds & confirmation_seeds:
+            raise ValueError("Development and confirmation algorithm seeds must be disjoint.")
     raw_loss = protocol.get("svr_loss")
     expected_loss = None if raw_loss is None else str(raw_loss)
     if schema_version >= 2 and expected_loss not in {"legacy", "squared_epsilon"}:

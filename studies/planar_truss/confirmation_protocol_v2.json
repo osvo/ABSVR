@@ -1,0 +1,33 @@
+{
+  "schema_version": 2,
+  "status": "frozen_before_confirmation",
+  "benchmark": "published 23-bar planar truss evaluated with OpenSeesPy",
+  "development_algorithm_seeds": [11, 53, 101],
+  "confirmation_algorithm_seeds": [127, 139, 151, 163, 179, 191, 211, 223, 239, 251],
+  "development_and_confirmation_seeds_disjoint": true,
+  "configuration_development_used_reference_probability": true,
+  "training_loop_uses_reference_probability": false,
+  "training_loop_uses_validation_set": false,
+  "configuration": {
+    "svr_loss": "squared_epsilon",
+    "kernel": "gaussian",
+    "gradient_weight": 0.0,
+    "initial_design": "15-point isoprobabilistic normal LHS",
+    "response": "log(displacement_limit / abs(midspan_displacement))",
+    "response_preserves_original_failure_event": true,
+    "total_opensees_calls_per_run": 95,
+    "added_points": 80,
+    "candidate_pool_size": 131072,
+    "hyperparameter_selection": "periodic deterministic Bayesian-evidence grid",
+    "hyperparameter_retune_interval": 20
+  },
+  "validation": {
+    "method": "independently scrambled Sobol RQMC after model freezing",
+    "replications": 8,
+    "samples_per_replication": 524288,
+    "base_seed": 20260808,
+    "reference_evaluations_counted_as_absvr_calls": false
+  },
+  "development_budget_report": "results/planar_truss/squared_option_budget_development3.json",
+  "frozen_algorithm_commit": "9b94637"
+}

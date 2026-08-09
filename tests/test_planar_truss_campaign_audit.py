@@ -30,6 +30,9 @@ def _campaign() -> dict:
     }
     return {
         "schema_version": 2,
+        "campaign_stage": "confirmation",
+        "configuration_development_used_reference_probability": True,
+        "development_algorithm_seeds": [11, 53, 101],
         "selection_uses_reference_probability": False,
         "selection_uses_validation_set": False,
         "training_protocol": {
@@ -63,4 +66,11 @@ def test_campaign_audit_rejects_reference_aware_selection() -> None:
     campaign = _campaign()
     campaign["selection_uses_reference_probability"] = True
     with pytest.raises(ValueError, match="blind"):
+        audit_campaign(campaign, _reference())
+
+
+def test_campaign_audit_rejects_development_confirmation_seed_overlap() -> None:
+    campaign = _campaign()
+    campaign["development_algorithm_seeds"] = [7]
+    with pytest.raises(ValueError, match="disjoint"):
         audit_campaign(campaign, _reference())

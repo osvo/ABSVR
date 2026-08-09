@@ -268,6 +268,20 @@ def main() -> None:
     )
     parser.add_argument("--max-added", type=int, default=80)
     parser.add_argument("--loss", default="squared_epsilon")
+    parser.add_argument(
+        "--campaign-stage",
+        choices=("development", "confirmation"),
+        default="development",
+    )
+    parser.add_argument(
+        "--configuration-development-used-reference-probability",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--development-seeds",
+        type=_parse_int_list,
+        default=(),
+    )
     parser.add_argument("--pool-log2", type=int, default=17)
     parser.add_argument("--validation-log2", type=int, default=20)
     parser.add_argument("--validation-replications", type=int, default=16)
@@ -291,6 +305,14 @@ def main() -> None:
     parser.add_argument("--verbose", action="store_true")
     args = parser.parse_args()
     args.loss = normalize_loss(args.loss)
+    if args.campaign_stage == "confirmation":
+        if not args.configuration_development_used_reference_probability:
+            raise SystemExit(
+                "Confirmation must disclose whether development used the reference probability."
+            )
+        overlap = sorted(set(args.seeds) & set(args.development_seeds))
+        if overlap:
+            raise SystemExit(f"Development and confirmation seeds overlap: {overlap}")
     if args.max_added < 1 or args.pool_log2 < 1:
         raise SystemExit("Training budget and pool exponent must be positive.")
     if args.validation_log2 < 1 or args.validation_replications < 1:
@@ -336,6 +358,11 @@ def main() -> None:
     report = {
         "schema_version": 2,
         "benchmark": "published 23-bar planar truss evaluated with OpenSeesPy",
+        "campaign_stage": args.campaign_stage,
+        "configuration_development_used_reference_probability": bool(
+            args.configuration_development_used_reference_probability
+        ),
+        "development_algorithm_seeds": list(args.development_seeds),
         "selection_uses_reference_probability": False,
         "selection_uses_validation_set": False,
         "primary_metrics": [
