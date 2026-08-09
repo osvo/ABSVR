@@ -9,10 +9,8 @@ try:  # Optional CVXOPT acceleration
     from cvxopt import matrix as cvx_matrix, solvers as cvx_solvers
 
     cvx_solvers.options["show_progress"] = False
-    cvx_solvers.options["abstol"] = 1e-10
-    cvx_solvers.options["reltol"] = 1e-9
-    cvx_solvers.options["feastol"] = 1e-9
-    cvx_solvers.options["refinement"] = 2
+    cvx_solvers.options["abstol"] = 1e-7
+    cvx_solvers.options["reltol"] = 1e-7
     cvx_solvers.options["maxiters"] = 200
     _HAVE_CVXOPT = True
 except ImportError:  # pragma: no cover - optional
