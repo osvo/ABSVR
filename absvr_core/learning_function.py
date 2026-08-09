@@ -88,5 +88,10 @@ def compute_learning_function(
     numerator = 1.0 + np.exp(SLF_PENALTY_FACTOR * scaled)
     denominator = NUMERICAL_STABILITY_TERM + (g_mse_region_norm * v_joint_region_norm) * min_distance * grad_factor
     lf = numerator / denominator
+    # The candidate population also serves as the fixed Monte Carlo population.
+    # Retain evaluated points for an unbiased empirical probability estimate,
+    # but make them ineligible for reselection.
+    duplicate_tolerance = 10.0 * np.sqrt(np.finfo(float).eps)
+    lf[min_distance <= duplicate_tolerance] = np.inf
 
     return lf, mc_pool_region, region_indices
