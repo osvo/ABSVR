@@ -83,3 +83,19 @@ OpenSees calls per run. Its mean estimate is `Pf = 1.50135e-3`: the relative
 error is 0.457% against the independent 16-replication RQMC reference and
 1.227% against the published direct-MCS value. Per-run errors and the two
 least accurate seeds remain in the result file and audit; no run was removed.
+
+## Direct UQLab comparator
+
+The `uqlab/` directory contains a direct UQLab ALR/AK-MCS configuration whose
+true model evaluations are sent to the same OpenSeesPy implementation through
+a tested CSV bridge. Each run has an independent OpenSees call ledger, and the
+runner rejects any disagreement with UQLab's own `ModelEvaluations` count.
+
+See `uqlab/README.md` for installation and execution. The default local profile
+matches the published marginals, initial size, Gaussian Kriging covariance,
+internal MCS size, and 10% failure-probability-bound stopping rule. It uses a
+fully disclosed LHS because the 2018 paper does not specify enough detail to
+reconstruct its uniform-in-a-ball initial design exactly. It is therefore
+reported as a direct paper-like UQLab baseline, not as an exact reproduction of
+the published AK-MCS realization. A-bPCE remains a published external
+comparator rather than a modification of ABSVR.
