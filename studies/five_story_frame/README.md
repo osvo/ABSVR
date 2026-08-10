@@ -42,6 +42,12 @@ validation set are unavailable to the adaptive loop.  All OpenSees calls in
 the initial design and enrichment sequence count toward the reported budget;
 the separately labeled reference audit does not.
 
+The first three-seed development profile (`SLF`, 123 calls) was rejected: its
+mean probability was `1.2051e-3`, giving 20.20% relative error, with individual
+errors from 2.05% to 42.15%.  The single favorable seed is not selected or
+reported as representative.  The raw campaign remains in
+`results/five_story_frame/absvr_development.json`.
+
 ## Literature checkpoints
 
 - Marelli and Sudret (2018) report `Pf = 1.54e-3` with a 95% importance-

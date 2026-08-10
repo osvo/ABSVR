@@ -155,6 +155,7 @@ def _run_one(
     validation_replications: int,
     validation_base_seed: int,
     verbose: bool,
+    learning_strategy: str,
 ) -> dict[str, Any]:
     adaptive_module = importlib.import_module("absvr_core.adaptive_loop")
     pool_size = 1 << pool_log2
@@ -166,7 +167,7 @@ def _run_one(
         retune_interval=20, loss="squared_epsilon"
     )
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
-    checkpoint = checkpoint_dir / f"seed_{seed}.npz"
+    checkpoint = checkpoint_dir / f"seed_{seed}_{learning_strategy}.npz"
     result = run_adaptive_svr(
         "five_story_frame",
         added_points,
@@ -177,7 +178,7 @@ def _run_one(
         initial_design="normal_lhs",
         svr_trainer=trainer,
         learning_w_grad=0.0,
-        learning_strategy="slf",
+        learning_strategy=learning_strategy,
         checkpoint_path=str(checkpoint),
         resume_from=(str(checkpoint) if resume and checkpoint.is_file() else None),
         checkpoint_frequency=1,
@@ -200,6 +201,7 @@ def _run_one(
         "initial_samples": int(initial_samples),
         "added_points": int(added_points),
         "candidate_pool_size": int(pool_size),
+        "learning_strategy": learning_strategy,
         "adaptive_pool_pf_diagnostic": float(result.probability_of_failure),
         "evidence_history": trainer.history,
         "validation": validation,
@@ -247,6 +249,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--initial-samples", type=int, default=43)
     parser.add_argument("--added-points", type=int, default=80)
     parser.add_argument("--pool-log2", type=int, default=17)
+    parser.add_argument(
+        "--learning-strategy",
+        choices=("slf", "u", "u_distance"),
+        default="slf",
+    )
     parser.add_argument("--validation-log2", type=int, default=18)
     parser.add_argument("--validation-replications", type=int, default=4)
     parser.add_argument("--validation-base-seed", type=int, default=20260810)
@@ -284,6 +291,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             validation_replications=args.validation_replications,
             validation_base_seed=args.validation_base_seed,
             verbose=args.verbose,
+            learning_strategy=args.learning_strategy,
         )
         runs.append(run)
         print(
@@ -302,6 +310,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.configuration_development_used_reference_probability
         ),
         "development_algorithm_seeds": list(args.development_seeds),
+        "algorithm_seeds": list(args.seeds),
         "selection_uses_reference_probability": False,
         "selection_uses_validation_set": False,
         "primary_metrics": [
@@ -317,7 +326,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "svr_loss": "squared_epsilon",
             "kernel": "gaussian",
             "gradient_weight": 0.0,
-            "learning_strategy": "slf",
+            "learning_strategy": args.learning_strategy,
             "hyperparameter_selection": "periodic deterministic Bayesian-evidence grid",
             "hyperparameter_retune_interval": 20,
         },
