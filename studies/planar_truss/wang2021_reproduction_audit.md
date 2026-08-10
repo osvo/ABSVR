@@ -111,6 +111,19 @@ metrics consistently:
 - increasing the candidate population to 2^20 while retaining the remaining
   protocol.  The first development run used 55 true calls and produced
   Pf = 8.4114075e-4, a 44.23% relative error, so the campaign was stopped.
+- replacing the published score by the standard U-score at 55 calls.  Across
+  all 13 development seeds, the mean estimate was 1.3278081e-3: its relative
+  error was 11.96%, while the mean and median absolute per-run errors were
+  13.45% and 9.96%.  The U-score is useful as a diagnostic baseline but is not
+  competitive on this benchmark;
+- estimating Pf from a weighted local affine approximation of the learned
+  boundary.  The configuration fixed before extending the experiment
+  (weight power 1 and ridge penalty 0.1) gave a 0.97% error of the mean across
+  13 seeds, but a 17.68% mean absolute per-run error, a 14.59% median error,
+  and a 44.61% worst-case error.  Leave-one-out aggregation did not reduce
+  this dispersion.  A post-hoc grid contained settings with a nearly unbiased
+  mean only because large positive and negative run errors cancelled; those
+  settings are explicitly ineligible for confirmation or publication.
 
 The last result is stored in
 `results/planar_truss/pool20_development_seed11.json`.  None of the discarded
@@ -120,7 +133,11 @@ variants may be selected post hoc for the article.
 
 The next comparison will change only the acquisition score while retaining the
 same initial-design generator, squared-epsilon BSVR, 2^17 candidate set, and
-55-call budget.  A standard misclassification/U score will be tested first as
-a diagnostic baseline.  Any proposed new score must be defined before looking
-at its reference error, evaluated on all development seeds, and then frozen for
-new-seed confirmation.
+55-call budget.  Before inspecting its reference error, the new score is fixed
+as the product of the candidate's Gaussian probability of sign
+misclassification, Phi(-U), and its nearest-neighbour distance from the
+current design in independent standard-normal space.  Maximizing this product
+balances boundary uncertainty with coverage and avoids repeatedly enriching a
+single small part of the predicted limit-state surface.  It introduces no
+reference-dependent constant.  It will first be evaluated on three development
+seeds and extended to all development seeds only if that gate is promising.

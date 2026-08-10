@@ -1,0 +1,285 @@
+{
+  "schema_version": 1,
+  "purpose": "development evaluation of a frozen local-linear boundary correction",
+  "configuration_uses_reference_probability": false,
+  "reference_used_only_for_postfit_audit": true,
+  "source_campaign": "results/planar_truss/u_score_development10.json",
+  "configuration": {
+    "calls": 55,
+    "weight": "exp(-weight_power * abs(g) / median(abs(g)))",
+    "weight_power": 1.0,
+    "ridge_alpha": 0.1,
+    "probability_formula": "Phi(-intercept / l2_norm(gradient))"
+  },
+  "independent_reference": {
+    "path": "results/planar_truss/reference_qmc.json",
+    "mean_pf": 0.0015082359313964844,
+    "confidence_interval_95": [
+      0.0015022002354417054,
+      0.0015142716273512634
+    ]
+  },
+  "summary": {
+    "runs": 10,
+    "mean_pf": 0.0015254740130367307,
+    "standard_deviation_pf": 0.00038428273241863123,
+    "relative_error_of_mean_pf_percent": 1.1429300470441333,
+    "mean_absolute_run_error_percent": 20.147693375467885,
+    "median_absolute_run_error_percent": 17.582253975597368,
+    "minimum_absolute_run_error_percent": 0.32064297734192737,
+    "maximum_absolute_run_error_percent": 44.6134351634169,
+    "mean_open_sees_limit_state_calls": 55.0
+  },
+  "runs": [
+    {
+      "algorithm_seed": 127,
+      "open_sees_limit_state_calls": 55,
+      "source_checkpoint": "results/planar_truss/u_llb_development10_checkpoints/seed_127_gradient_0_loss_squared_epsilon_tuning_evidence_learning_u.npz",
+      "fit": {
+        "failure_probability": 0.001503399878800714,
+        "reliability_index": 2.9670419044941596,
+        "intercept": 0.32334107416580526,
+        "gradient": [
+          0.0658304329068241,
+          0.01148642062367231,
+          0.060762937416406336,
+          0.010316890976154102,
+          -0.006022562176743909,
+          -0.01636508665779831,
+          -0.04097913879597665,
+          -0.03383277784047668,
+          -0.0204938590906716,
+          -0.007995384048392498
+        ],
+        "response_scale_median_abs": 0.051701475621193316,
+        "effective_weighted_sample_size": 32.22468148353222
+      },
+      "relative_error_vs_independent_reference_percent": 0.32064297734192737
+    },
+    {
+      "algorithm_seed": 139,
+      "open_sees_limit_state_calls": 55,
+      "source_checkpoint": "results/planar_truss/u_llb_development10_checkpoints/seed_139_gradient_0_loss_squared_epsilon_tuning_evidence_learning_u.npz",
+      "fit": {
+        "failure_probability": 0.0020736844465399896,
+        "reliability_index": 2.8667298365897507,
+        "intercept": 0.23849666861039745,
+        "gradient": [
+          0.04997515388614562,
+          0.007523649535548997,
+          0.049306804428987445,
+          0.010110849004766538,
+          -0.006562596731376537,
+          -0.018592200238734136,
+          -0.02102952616575416,
+          -0.02137490953180436,
+          -0.022843870502880056,
+          -0.004912773763360066
+        ],
+        "response_scale_median_abs": 0.04964279307163443,
+        "effective_weighted_sample_size": 31.207411907909517
+      },
+      "relative_error_vs_independent_reference_percent": 37.490720342403804
+    },
+    {
+      "algorithm_seed": 151,
+      "open_sees_limit_state_calls": 55,
+      "source_checkpoint": "results/planar_truss/u_llb_development10_checkpoints/seed_151_gradient_0_loss_squared_epsilon_tuning_evidence_learning_u.npz",
+      "fit": {
+        "failure_probability": 0.002181111790761412,
+        "reliability_index": 2.8507063454651758,
+        "intercept": 0.14385382684472364,
+        "gradient": [
+          0.027974233517664385,
+          -0.0003785273578815809,
+          0.0333366297172674,
+          0.003405607669668296,
+          -0.0012220069149286373,
+          -0.010887832065777299,
+          -0.013740080195330523,
+          -0.012768295219406117,
+          -0.012936537234862763,
+          0.001274573288990969
+        ],
+        "response_scale_median_abs": 0.03154144546230576,
+        "effective_weighted_sample_size": 31.155380931323165
+      },
+      "relative_error_vs_independent_reference_percent": 44.6134351634169
+    },
+    {
+      "algorithm_seed": 163,
+      "open_sees_limit_state_calls": 55,
+      "source_checkpoint": "results/planar_truss/u_llb_development10_checkpoints/seed_163_gradient_0_loss_squared_epsilon_tuning_evidence_learning_u.npz",
+      "fit": {
+        "failure_probability": 0.00122253168153773,
+        "reliability_index": 3.0300585471817785,
+        "intercept": 0.4173710223372393,
+        "gradient": [
+          0.08527635246391145,
+          0.00967202644853837,
+          0.0815955328335849,
+          0.015204189200397884,
+          -0.006924469394526677,
+          -0.026142822511053595,
+          -0.03802804633391741,
+          -0.04320408004759634,
+          -0.02484819941241606,
+          -0.007558416213973695
+        ],
+        "response_scale_median_abs": 0.059124936672760774,
+        "effective_weighted_sample_size": 32.71971184310804
+      },
+      "relative_error_vs_independent_reference_percent": 18.942941479601224
+    },
+    {
+      "algorithm_seed": 179,
+      "open_sees_limit_state_calls": 55,
+      "source_checkpoint": "results/planar_truss/u_llb_development10_checkpoints/seed_179_gradient_0_loss_squared_epsilon_tuning_evidence_learning_u.npz",
+      "fit": {
+        "failure_probability": 0.001288249747328427,
+        "reliability_index": 3.014209350857793,
+        "intercept": 0.34930391171151903,
+        "gradient": [
+          0.07104052511163288,
+          0.011293771513608875,
+          0.06848196400768333,
+          0.009861424113313824,
+          -0.009831609945738113,
+          -0.022414947401352362,
+          -0.03251655536989316,
+          -0.03446459214327333,
+          -0.02341227803076433,
+          -0.008707172599481082
+        ],
+        "response_scale_median_abs": 0.036271088395205514,
+        "effective_weighted_sample_size": 31.290607355808525
+      },
+      "relative_error_vs_independent_reference_percent": 14.585661267489558
+    },
+    {
+      "algorithm_seed": 191,
+      "open_sees_limit_state_calls": 55,
+      "source_checkpoint": "results/planar_truss/u_llb_development10_checkpoints/seed_191_gradient_0_loss_squared_epsilon_tuning_evidence_learning_u.npz",
+      "fit": {
+        "failure_probability": 0.0012635764372365462,
+        "reliability_index": 3.020071178490146,
+        "intercept": 0.4162848962937321,
+        "gradient": [
+          0.07907213262916205,
+          0.012251363722761026,
+          0.08412507312532258,
+          0.012764024708729465,
+          -0.0072384280852135965,
+          -0.029452826563055288,
+          -0.050493689795658964,
+          -0.03291885906119961,
+          -0.02770343286973422,
+          -0.006054313422976549
+        ],
+        "response_scale_median_abs": 0.05824656926634504,
+        "effective_weighted_sample_size": 32.664981964839
+      },
+      "relative_error_vs_independent_reference_percent": 16.22156647159351
+    },
+    {
+      "algorithm_seed": 211,
+      "open_sees_limit_state_calls": 55,
+      "source_checkpoint": "results/planar_truss/u_llb_development10_checkpoints/seed_211_gradient_0_loss_squared_epsilon_tuning_evidence_learning_u.npz",
+      "fit": {
+        "failure_probability": 0.0010719398279570524,
+        "reliability_index": 3.069541015788196,
+        "intercept": 0.44295014434950325,
+        "gradient": [
+          0.08736691881734417,
+          0.012237045784925252,
+          0.0851045228121903,
+          0.010867237483527725,
+          -0.009339975120882917,
+          -0.028371431970073108,
+          -0.04307769606290387,
+          -0.04965607053630425,
+          -0.021303249922034216,
+          -0.00359447261382614
+        ],
+        "response_scale_median_abs": 0.09249140679269731,
+        "effective_weighted_sample_size": 34.66588785906722
+      },
+      "relative_error_vs_independent_reference_percent": 28.927576538735746
+    },
+    {
+      "algorithm_seed": 223,
+      "open_sees_limit_state_calls": 55,
+      "source_checkpoint": "results/planar_truss/u_llb_development10_checkpoints/seed_223_gradient_0_loss_squared_epsilon_tuning_evidence_learning_u.npz",
+      "fit": {
+        "failure_probability": 0.0014745774399813304,
+        "reliability_index": 2.9729885133129565,
+        "intercept": 0.42258709651378956,
+        "gradient": [
+          0.08121393949414342,
+          0.006882387589006974,
+          0.08882861961332432,
+          0.008567615308773103,
+          -0.009081740621120642,
+          -0.023169221134619448,
+          -0.0407063911557597,
+          -0.05171704723471154,
+          -0.023920433951287748,
+          -0.008617532444739869
+        ],
+        "response_scale_median_abs": 0.07118951538289287,
+        "effective_weighted_sample_size": 33.932578460488244
+      },
+      "relative_error_vs_independent_reference_percent": 2.231646303770884
+    },
+    {
+      "algorithm_seed": 239,
+      "open_sees_limit_state_calls": 55,
+      "source_checkpoint": "results/planar_truss/u_llb_development10_checkpoints/seed_239_gradient_0_loss_squared_epsilon_tuning_evidence_learning_u.npz",
+      "fit": {
+        "failure_probability": 0.0018754757192712627,
+        "reliability_index": 2.8983805629184203,
+        "intercept": 0.12700385437323589,
+        "gradient": [
+          0.02581694365366769,
+          0.0009891050466140682,
+          0.026342776194490772,
+          0.005182255465228173,
+          -0.0025499586595510134,
+          -0.005577972314837382,
+          -0.013758194757851411,
+          -0.013897174659875455,
+          -0.010537007151927595,
+          -0.0008612085396484451
+        ],
+        "response_scale_median_abs": 0.018357903682977496,
+        "effective_weighted_sample_size": 29.69308146434339
+      },
+      "relative_error_vs_independent_reference_percent": 24.348961606739394
+    },
+    {
+      "algorithm_seed": 251,
+      "open_sees_limit_state_calls": 55,
+      "source_checkpoint": "results/planar_truss/u_llb_development10_checkpoints/seed_251_gradient_0_loss_squared_epsilon_tuning_evidence_learning_u.npz",
+      "fit": {
+        "failure_probability": 0.0013001931609528438,
+        "reliability_index": 3.011408650211887,
+        "intercept": 0.31407378108767153,
+        "gradient": [
+          0.06095867595203643,
+          0.009506689778351259,
+          0.059454018213926,
+          0.01514751286158483,
+          -0.00921591072364553,
+          -0.020510933454395527,
+          -0.03556889772832125,
+          -0.030457924729666828,
+          -0.021967174019080535,
+          -0.01121549738850958
+        ],
+        "response_scale_median_abs": 0.03747248656139211,
+        "effective_weighted_sample_size": 30.414284060121364
+      },
+      "relative_error_vs_independent_reference_percent": 13.793781603585893
+    }
+  ]
+}

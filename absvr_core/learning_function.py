@@ -1,6 +1,7 @@
 """Computation of the adaptive learning function used for enrichment."""
 
 import numpy as np
+from scipy.special import log_ndtr
 
 try:
     from surrogate.svr.grad import svr_mean_grad
@@ -29,14 +30,18 @@ def compute_learning_function(
     ``strategy='slf'`` preserves the historical penalty-style score.
     ``strategy='u'`` uses the standard misclassification score
     ``abs(mu) / sigma`` inside the same adaptive sampling region.
+    ``strategy='u_distance'`` maximizes the product of Gaussian sign-
+    misclassification probability and nearest-design distance.  Because the
+    selector minimizes this function, the returned value is the negative log
+    of that product.
     """
 
     grad_weight = float(w_grad)
     if grad_weight < 0.0:
         grad_weight = 0.0
     strategy = str(strategy).strip().lower()
-    if strategy not in {"slf", "u"}:
-        raise ValueError("strategy must be 'slf' or 'u'.")
+    if strategy not in {"slf", "u", "u_distance"}:
+        raise ValueError("strategy must be 'slf', 'u', or 'u_distance'.")
 
     v_pdf = v_pdf_pool
     v_joint_sorted = np.sort(v_pdf)
@@ -56,14 +61,30 @@ def compute_learning_function(
         return np.array([]), mc_pool_region, region_indices
 
     sqrt_g_mse = np.sqrt(np.maximum(g_mse_region, 0.0))
-    if strategy == "u":
+    if strategy in {"u", "u_distance"}:
         finite_positive = sqrt_g_mse[np.isfinite(sqrt_g_mse) & (sqrt_g_mse > 0.0)]
         scale = float(np.max(finite_positive)) if finite_positive.size else 1.0
         denominator = np.maximum(
             sqrt_g_mse,
             NUMERICAL_STABILITY_TERM * max(scale, NUMERICAL_STABILITY_TERM),
         )
-        lf = np.abs(g_predict_region) / denominator
+        u_score = np.abs(g_predict_region) / denominator
+        u_score = np.where(np.isfinite(u_score), u_score, np.inf)
+        if strategy == "u":
+            return u_score, mc_pool_region, region_indices
+
+        # Work in log space because Phi(-U) can underflow for candidates far
+        # from the predicted boundary.  All campaign coordinates are standard
+        # normal and therefore the Euclidean distance is dimensionless.
+        doe_sq = np.sum(doe**2, axis=1)
+        region_sq = np.sum(mc_pool_region**2, axis=1, keepdims=True)
+        pairwise_sq = region_sq + doe_sq[None, :] - 2.0 * mc_pool_region @ doe.T
+        pairwise_sq = np.maximum(pairwise_sq, 0.0)
+        min_distance = np.sqrt(np.min(pairwise_sq, axis=1))
+        log_utility = log_ndtr(-u_score) + np.log(
+            np.maximum(min_distance, NUMERICAL_STABILITY_TERM)
+        )
+        lf = -log_utility
         lf = np.where(np.isfinite(lf), lf, np.inf)
         return lf, mc_pool_region, region_indices
 

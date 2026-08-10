@@ -253,8 +253,9 @@ def run_adaptive_svr(
         Weight for the gradient term in the learning function (0 disables it).
     learning_strategy:
         Candidate score inside the adaptive sampling region. ``"slf"``
-        preserves the historical score and ``"u"`` enables the standard
-        misclassification U-score baseline.
+        preserves the historical score, ``"u"`` enables the standard
+        misclassification U-score baseline, and ``"u_distance"`` combines
+        sign-misclassification probability with nearest-design distance.
     svr_bounds_mode:
         Bound profile for the SVR optimizer ("python" or "baseline").
     tail_policy:
@@ -300,8 +301,10 @@ def run_adaptive_svr(
         raise ValueError("checkpoint_frequency must be a positive integer.")
 
     learning_strategy = str(learning_strategy).strip().lower()
-    if learning_strategy not in {"slf", "u"}:
-        raise ValueError("learning_strategy must be 'slf' or 'u'.")
+    if learning_strategy not in {"slf", "u", "u_distance"}:
+        raise ValueError(
+            "learning_strategy must be 'slf', 'u', or 'u_distance'."
+        )
 
     initial_design = str(initial_design).strip().lower()
     if initial_design not in {"uniform_box", "normal_lhs"}:

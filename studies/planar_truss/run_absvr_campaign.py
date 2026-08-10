@@ -289,7 +289,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--learning-strategy",
-        choices=("slf", "u"),
+        choices=("slf", "u", "u_distance"),
         default="slf",
     )
     parser.add_argument(
