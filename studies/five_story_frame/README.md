@@ -75,6 +75,14 @@ three-seed development result is not used as manuscript evidence.  The full
 failed confirmation is retained in
 `results/five_story_frame/confirmation_campaign.json`.
 
+Those ten exposed seeds were then reclassified as development and extended to
+235 calls to test the stated stability hypothesis.  At 235 calls, the error of
+the ten-seed mean fell to 0.733%, the mean absolute run error to 4.16%, and the
+worst run error to 9.13%.  No intermediate prefix was selected after seeing
+these results: the 235-call endpoint is carried forward to a new confirmation
+on a second disjoint seed set.  The development record is
+`results/five_story_frame/postconfirmation_budget235_development.json`.
+
 ## Literature checkpoints
 
 - Marelli and Sudret (2018) report `Pf = 1.54e-3` with a 95% importance-
