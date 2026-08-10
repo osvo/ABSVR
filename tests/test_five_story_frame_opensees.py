@@ -18,6 +18,9 @@ from benchmarks.five_story_frame_opensees import (
     five_story_frame_limit_state,
     standard_normal_to_physical,
     top_displacement_banded,
+    top_displacement_euler_banded,
+    top_displacement_euler_numpy,
+    top_displacement_euler_opensees,
     top_displacement_numpy,
     top_displacement_opensees,
 )
@@ -111,15 +114,40 @@ def test_opensees_response_matches_independent_numpy_fe() -> None:
     np.testing.assert_allclose(banded, direct, rtol=3.0e-12, atol=1.0e-14)
     np.testing.assert_allclose(opensees, direct, rtol=3.0e-12, atol=1.0e-14)
 
+    direct_euler = np.asarray(top_displacement_euler_numpy(physical))
+    banded_euler = np.asarray(top_displacement_euler_banded(physical, chunk_size=2))
+    opensees_euler = np.asarray(top_displacement_euler_opensees(physical))
+    np.testing.assert_allclose(banded_euler, direct_euler, rtol=3.0e-12, atol=1.0e-14)
+    np.testing.assert_allclose(opensees_euler, direct_euler, rtol=3.0e-12, atol=1.0e-14)
 
-def test_reference_solver_reproduces_published_mcs_response_moments() -> None:
+
+def test_timoshenko_solver_reproduces_published_response_moments() -> None:
     unit = qmc.Sobol(d=21, scramble=True, seed=98765).random_base2(14)
     z = ndtri(np.clip(unit, np.finfo(float).tiny, 1.0 - np.finfo(float).eps))
     physical = standard_normal_to_physical(z)
     displacement = np.asarray(top_displacement_banded(physical))
 
-    # Li et al. report 0.0652 ft and 0.0202 ft from 100,000 direct MCS
-    # evaluations of this dependent, positively truncated frame model.
+    # The original benchmark response moments, reproduced in Li et al., are
+    # 0.069 ft and 0.021 ft.  The conventional Timoshenko reconstruction
+    # recovers them without an empirical response factor.
+    published_mean_m = 0.069 * 0.3048
+    published_standard_deviation_m = 0.021 * 0.3048
+    assert abs(displacement.mean() - published_mean_m) / published_mean_m < 0.01
+    assert (
+        abs(displacement.std(ddof=1) - published_standard_deviation_m)
+        / published_standard_deviation_m
+        < 0.01
+    )
+
+
+def test_euler_sensitivity_reproduces_li_direct_mcs_response_moments() -> None:
+    unit = qmc.Sobol(d=21, scramble=True, seed=98765).random_base2(14)
+    z = ndtri(np.clip(unit, np.finfo(float).tiny, 1.0 - np.finfo(float).eps))
+    physical = standard_normal_to_physical(z)
+    displacement = np.asarray(top_displacement_euler_banded(physical))
+
+    # Li et al. separately report 0.0652 ft and 0.0202 ft from 100,000 direct
+    # MCS evaluations; the Euler sensitivity reproduces that alternate result.
     published_mean_m = 0.0652 * 0.3048
     published_standard_deviation_m = 0.0202 * 0.3048
     assert abs(displacement.mean() - published_mean_m) / published_mean_m < 0.01

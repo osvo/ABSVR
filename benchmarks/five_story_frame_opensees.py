@@ -1,9 +1,16 @@
 """Five-storey, three-bay structural-frame reliability benchmark.
 
 The benchmark follows the frame in Blatman and Sudret (2010) and Marelli and
-Sudret (2018).  It has 24 nodes, 35 two-dimensional Euler-Bernoulli frame
-elements, and 21 correlated random inputs.  Failure occurs when the horizontal
-displacement of the top-right node reaches 0.05 m.
+Sudret (2018).  It has 24 nodes, 35 two-dimensional frame elements, and 21
+correlated random inputs.  Failure occurs when the horizontal displacement of
+the top-right node reaches 0.05 m.
+
+The cited papers specify a linear finite-element model but omit its shear-
+deformation convention.  The primary reconstruction uses first-order
+Timoshenko elements with fixed conventional values ``nu = 0.30`` and
+``A_s = 5 A / 6``; this reproduces their published response moments without a
+response correction.  The Euler-Bernoulli formulation remains available as an
+explicit sensitivity model and is never mixed with the primary results.
 
 ABSVR works in independent standard-normal space.  The transformation below
 first applies the published Gaussian copula and then the published marginal
@@ -22,6 +29,8 @@ from scipy.special import ndtr, ndtri
 
 PUBLISHED_REFERENCE_FAILURE_PROBABILITY = 1.54e-3
 DEFAULT_DISPLACEMENT_LIMIT_M = 0.05
+DEFAULT_POISSON_RATIO = 0.30
+DEFAULT_SHEAR_AREA_FACTOR = 5.0 / 6.0
 
 INPUT_NAMES = (
     "P1",
@@ -230,7 +239,7 @@ def standard_normal_to_physical(z: np.ndarray) -> np.ndarray:
     return physical[0] if was_vector else physical
 
 
-def _frame_element_global_stiffness(
+def _euler_frame_element_global_stiffness(
     node_i: int,
     node_j: int,
     area: float,
@@ -275,13 +284,134 @@ def _frame_element_global_stiffness(
     return transformation.T @ local @ transformation
 
 
-def _assemble_reduced_system(physical_inputs: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def _timoshenko_frame_element_global_stiffness(
+    node_i: int,
+    node_j: int,
+    area: float,
+    young_modulus: float,
+    moment_of_inertia: float,
+    *,
+    poisson_ratio: float = DEFAULT_POISSON_RATIO,
+    shear_area_factor: float = DEFAULT_SHEAR_AREA_FACTOR,
+) -> np.ndarray:
+    """Return the two-dimensional first-order shear-deformable stiffness."""
+
+    if not (-1.0 < poisson_ratio < 0.5):
+        raise ValueError("poisson_ratio must be between -1 and 0.5.")
+    if shear_area_factor <= 0.0:
+        raise ValueError("shear_area_factor must be positive.")
+    xi, yi = NODE_COORDINATES[node_i]
+    xj, yj = NODE_COORDINATES[node_j]
+    dx = xj - xi
+    dy = yj - yi
+    length = float(np.hypot(dx, dy))
+    cosine = dx / length
+    sine = dy / length
+
+    shear_modulus = young_modulus / (2.0 * (1.0 + poisson_ratio))
+    shear_area = shear_area_factor * area
+    phi = (
+        12.0
+        * young_modulus
+        * moment_of_inertia
+        / (shear_modulus * shear_area * length**2)
+    )
+    flexural_factor = (
+        young_modulus * moment_of_inertia / (length**3 * (1.0 + phi))
+    )
+    axial = young_modulus * area / length
+    bending_12 = 12.0 * flexural_factor
+    bending_6 = 6.0 * length * flexural_factor
+    bending_4 = (4.0 + phi) * length**2 * flexural_factor
+    bending_2 = (2.0 - phi) * length**2 * flexural_factor
+    local = np.array(
+        [
+            [axial, 0.0, 0.0, -axial, 0.0, 0.0],
+            [0.0, bending_12, bending_6, 0.0, -bending_12, bending_6],
+            [0.0, bending_6, bending_4, 0.0, -bending_6, bending_2],
+            [-axial, 0.0, 0.0, axial, 0.0, 0.0],
+            [0.0, -bending_12, -bending_6, 0.0, bending_12, -bending_6],
+            [0.0, bending_6, bending_2, 0.0, -bending_6, bending_4],
+        ],
+        dtype=float,
+    )
+    transformation = np.array(
+        [
+            [cosine, sine, 0.0, 0.0, 0.0, 0.0],
+            [-sine, cosine, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, cosine, sine, 0.0],
+            [0.0, 0.0, 0.0, -sine, cosine, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+        ],
+        dtype=float,
+    )
+    return transformation.T @ local @ transformation
+
+
+def _assemble_timoshenko_reduced_system(
+    physical_inputs: np.ndarray,
+    *,
+    poisson_ratio: float = DEFAULT_POISSON_RATIO,
+    shear_area_factor: float = DEFAULT_SHEAR_AREA_FACTOR,
+) -> tuple[np.ndarray, np.ndarray]:
     n_dof = 3 * len(NODE_COORDINATES)
     stiffness = np.zeros((n_dof, n_dof), dtype=float)
 
     for node_i, node_j, group in ALL_MEMBERS:
         young_index, inertia_index, area_index = ELEMENT_PROPERTY_INDICES[group]
-        element = _frame_element_global_stiffness(
+        element = _timoshenko_frame_element_global_stiffness(
+            node_i,
+            node_j,
+            float(physical_inputs[area_index]),
+            float(physical_inputs[young_index]),
+            float(physical_inputs[inertia_index]),
+            poisson_ratio=poisson_ratio,
+            shear_area_factor=shear_area_factor,
+        )
+        dofs = [
+            3 * (node_i - 1),
+            3 * (node_i - 1) + 1,
+            3 * (node_i - 1) + 2,
+            3 * (node_j - 1),
+            3 * (node_j - 1) + 1,
+            3 * (node_j - 1) + 2,
+        ]
+        stiffness[np.ix_(dofs, dofs)] += element
+
+    loads = np.zeros(n_dof, dtype=float)
+    for node, input_index in zip(LOAD_NODES, LOAD_INPUT_INDICES):
+        loads[3 * (node - 1)] = float(physical_inputs[input_index])
+
+    restrained = {3 * (node - 1) + dof for node in BASE_NODES for dof in range(3)}
+    free = np.array([dof for dof in range(n_dof) if dof not in restrained], dtype=int)
+    return stiffness[np.ix_(free, free)], loads[free]
+
+
+def top_displacement_numpy(physical_inputs: np.ndarray) -> np.ndarray | float:
+    """Independent dense Timoshenko finite-element implementation."""
+
+    values, was_vector = _as_2d(physical_inputs)
+    displacements = np.empty(values.shape[0], dtype=float)
+    top_right_horizontal_dof_in_reduced_system = 3 * (TOP_RIGHT_NODE - 1) - 12
+
+    for row_index, row in enumerate(values):
+        stiffness, loads = _assemble_timoshenko_reduced_system(row)
+        response = np.linalg.solve(stiffness, loads)
+        displacements[row_index] = response[top_right_horizontal_dof_in_reduced_system]
+
+    return float(displacements[0]) if was_vector else displacements
+
+
+def _assemble_euler_reduced_system(
+    physical_inputs: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    n_dof = 3 * len(NODE_COORDINATES)
+    stiffness = np.zeros((n_dof, n_dof), dtype=float)
+
+    for node_i, node_j, group in ALL_MEMBERS:
+        young_index, inertia_index, area_index = ELEMENT_PROPERTY_INDICES[group]
+        element = _euler_frame_element_global_stiffness(
             node_i,
             node_j,
             float(physical_inputs[area_index]),
@@ -307,15 +437,15 @@ def _assemble_reduced_system(physical_inputs: np.ndarray) -> tuple[np.ndarray, n
     return stiffness[np.ix_(free, free)], loads[free]
 
 
-def top_displacement_numpy(physical_inputs: np.ndarray) -> np.ndarray | float:
-    """Independent dense-matrix finite-element implementation."""
+def top_displacement_euler_numpy(physical_inputs: np.ndarray) -> np.ndarray | float:
+    """Independent dense Euler-Bernoulli finite-element implementation."""
 
     values, was_vector = _as_2d(physical_inputs)
     displacements = np.empty(values.shape[0], dtype=float)
     top_right_horizontal_dof_in_reduced_system = 3 * (TOP_RIGHT_NODE - 1) - 12
 
     for row_index, row in enumerate(values):
-        stiffness, loads = _assemble_reduced_system(row)
+        stiffness, loads = _assemble_euler_reduced_system(row)
         response = np.linalg.solve(stiffness, loads)
         displacements[row_index] = response[top_right_horizontal_dof_in_reduced_system]
 
@@ -323,7 +453,7 @@ def top_displacement_numpy(physical_inputs: np.ndarray) -> np.ndarray | float:
 
 
 @lru_cache(maxsize=1)
-def _reduced_stiffness_bands() -> tuple[np.ndarray, int]:
+def _euler_reduced_stiffness_bands() -> tuple[np.ndarray, int]:
     """Return 16 unit-property stiffness bases in lower-band storage."""
 
     n_dof = 3 * len(NODE_COORDINATES)
@@ -338,11 +468,11 @@ def _reduced_stiffness_bands() -> tuple[np.ndarray, int]:
                 if member_group != group:
                     continue
                 if property_type == "EA":
-                    element = _frame_element_global_stiffness(
+                    element = _euler_frame_element_global_stiffness(
                         node_i, node_j, area=1.0, young_modulus=1.0, moment_of_inertia=0.0
                     )
                 else:
-                    element = _frame_element_global_stiffness(
+                    element = _euler_frame_element_global_stiffness(
                         node_i, node_j, area=0.0, young_modulus=1.0, moment_of_inertia=1.0
                     )
                 dofs = [
@@ -366,7 +496,7 @@ def _reduced_stiffness_bands() -> tuple[np.ndarray, int]:
     return banded, half_bandwidth
 
 
-def top_displacement_banded(
+def top_displacement_euler_banded(
     physical_inputs: np.ndarray, *, chunk_size: int = 16_384
 ) -> np.ndarray | float:
     """Fast exact frame response for independent reference simulations.
@@ -380,7 +510,7 @@ def top_displacement_banded(
     values, was_vector = _as_2d(physical_inputs)
     if chunk_size < 1:
         raise ValueError("chunk_size must be positive.")
-    stiffness_bases, _ = _reduced_stiffness_bands()
+    stiffness_bases, _ = _euler_reduced_stiffness_bands()
     displacements = np.empty(values.shape[0], dtype=float)
     top_right_horizontal_dof_in_reduced_system = 3 * (TOP_RIGHT_NODE - 1) - 12
 
@@ -420,8 +550,180 @@ def top_displacement_banded(
     return float(displacements[0]) if was_vector else displacements
 
 
-def top_displacement_opensees(physical_inputs: np.ndarray) -> np.ndarray | float:
-    """Evaluate the frame with OpenSeesPy elastic beam-column elements."""
+def _frame_component_global_stiffness(
+    node_i: int, node_j: int, component: str
+) -> np.ndarray:
+    """Return a transformed unit local-stiffness component matrix."""
+
+    xi, yi = NODE_COORDINATES[node_i]
+    xj, yj = NODE_COORDINATES[node_j]
+    dx = xj - xi
+    dy = yj - yi
+    length = float(np.hypot(dx, dy))
+    cosine = dx / length
+    sine = dy / length
+    local = np.zeros((6, 6), dtype=float)
+    if component == "axial":
+        local[0, 0] = local[3, 3] = 1.0
+        local[0, 3] = local[3, 0] = -1.0
+    elif component == "b12":
+        local[1, 1] = local[4, 4] = 1.0
+        local[1, 4] = local[4, 1] = -1.0
+    elif component == "b6":
+        for row, column, value in (
+            (1, 2, 1.0),
+            (2, 1, 1.0),
+            (1, 5, 1.0),
+            (5, 1, 1.0),
+            (2, 4, -1.0),
+            (4, 2, -1.0),
+            (4, 5, -1.0),
+            (5, 4, -1.0),
+        ):
+            local[row, column] = value
+    elif component == "b4":
+        local[2, 2] = local[5, 5] = 1.0
+    elif component == "b2":
+        local[2, 5] = local[5, 2] = 1.0
+    else:
+        raise ValueError(f"Unknown stiffness component: {component}")
+
+    transformation = np.array(
+        [
+            [cosine, sine, 0.0, 0.0, 0.0, 0.0],
+            [-sine, cosine, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, cosine, sine, 0.0],
+            [0.0, 0.0, 0.0, -sine, cosine, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+        ],
+        dtype=float,
+    )
+    return transformation.T @ local @ transformation
+
+
+@lru_cache(maxsize=1)
+def _timoshenko_reduced_stiffness_bands() -> tuple[
+    np.ndarray, tuple[tuple[str, float], ...], int
+]:
+    """Return unit component bands for each member-group/length pair."""
+
+    members_by_group_and_length: dict[tuple[str, float], list[tuple[int, int]]] = {}
+    for node_i, node_j, group in ALL_MEMBERS:
+        xi, yi = NODE_COORDINATES[node_i]
+        xj, yj = NODE_COORDINATES[node_j]
+        length = round(float(np.hypot(xj - xi, yj - yi)), 10)
+        members_by_group_and_length.setdefault((group, length), []).append(
+            (node_i, node_j)
+        )
+    combinations = tuple(sorted(members_by_group_and_length))
+
+    n_dof = 3 * len(NODE_COORDINATES)
+    restrained = {3 * (node - 1) + dof for node in BASE_NODES for dof in range(3)}
+    free = np.array([dof for dof in range(n_dof) if dof not in restrained], dtype=int)
+    dense_bases: list[np.ndarray] = []
+    for combination in combinations:
+        for component in ("axial", "b12", "b6", "b4", "b2"):
+            stiffness = np.zeros((n_dof, n_dof), dtype=float)
+            for node_i, node_j in members_by_group_and_length[combination]:
+                element = _frame_component_global_stiffness(
+                    node_i, node_j, component
+                )
+                dofs = [
+                    3 * (node_i - 1),
+                    3 * (node_i - 1) + 1,
+                    3 * (node_i - 1) + 2,
+                    3 * (node_j - 1),
+                    3 * (node_j - 1) + 1,
+                    3 * (node_j - 1) + 2,
+                ]
+                stiffness[np.ix_(dofs, dofs)] += element
+            dense_bases.append(stiffness[np.ix_(free, free)])
+
+    dense = np.asarray(dense_bases)
+    nonzero_rows, nonzero_columns = np.where(np.max(np.abs(dense), axis=0) > 0.0)
+    half_bandwidth = int(np.max(np.abs(nonzero_rows - nonzero_columns)))
+    banded = np.zeros((dense.shape[0], half_bandwidth + 1, dense.shape[1]), dtype=float)
+    for offset in range(half_bandwidth + 1):
+        for column in range(dense.shape[1] - offset):
+            banded[:, offset, column] = dense[:, column + offset, column]
+    return banded, combinations, half_bandwidth
+
+
+def top_displacement_banded(
+    physical_inputs: np.ndarray,
+    *,
+    chunk_size: int = 16_384,
+    poisson_ratio: float = DEFAULT_POISSON_RATIO,
+    shear_area_factor: float = DEFAULT_SHEAR_AREA_FACTOR,
+) -> np.ndarray | float:
+    """Fast exact Timoshenko response for independent reference simulations."""
+
+    values, was_vector = _as_2d(physical_inputs)
+    if chunk_size < 1:
+        raise ValueError("chunk_size must be positive.")
+    if not (-1.0 < poisson_ratio < 0.5):
+        raise ValueError("poisson_ratio must be between -1 and 0.5.")
+    if shear_area_factor <= 0.0:
+        raise ValueError("shear_area_factor must be positive.")
+    stiffness_bases, combinations, _ = _timoshenko_reduced_stiffness_bands()
+    displacements = np.empty(values.shape[0], dtype=float)
+    top_right_horizontal_dof_in_reduced_system = 3 * (TOP_RIGHT_NODE - 1) - 12
+
+    for chunk_start in range(0, values.shape[0], chunk_size):
+        chunk_end = min(chunk_start + chunk_size, values.shape[0])
+        chunk = values[chunk_start:chunk_end]
+        coefficients: list[np.ndarray] = []
+        for group, length in combinations:
+            young_index, inertia_index, area_index = ELEMENT_PROPERTY_INDICES[group]
+            young = chunk[:, young_index]
+            inertia = chunk[:, inertia_index]
+            area = chunk[:, area_index]
+            phi = (
+                24.0
+                * (1.0 + poisson_ratio)
+                * inertia
+                / (shear_area_factor * area * length**2)
+            )
+            flexural_factor = young * inertia / (length**3 * (1.0 + phi))
+            coefficients.extend(
+                [
+                    young * area / length,
+                    12.0 * flexural_factor,
+                    6.0 * length * flexural_factor,
+                    (4.0 + phi) * length**2 * flexural_factor,
+                    (2.0 - phi) * length**2 * flexural_factor,
+                ]
+            )
+        coefficient_matrix = np.asarray(coefficients).T
+        banded_stiffness = np.einsum(
+            "bi,ikn->bkn", coefficient_matrix, stiffness_bases, optimize=True
+        )
+
+        loads = np.zeros((chunk.shape[0], 60), dtype=float)
+        for node, input_index in zip(LOAD_NODES, LOAD_INPUT_INDICES):
+            loads[:, 3 * (node - 5)] = chunk[:, input_index]
+
+        for local_index in range(chunk.shape[0]):
+            response = solveh_banded(
+                banded_stiffness[local_index],
+                loads[local_index],
+                lower=True,
+                overwrite_ab=True,
+                overwrite_b=True,
+                check_finite=False,
+            )
+            displacements[chunk_start + local_index] = response[
+                top_right_horizontal_dof_in_reduced_system
+            ]
+
+    return float(displacements[0]) if was_vector else displacements
+
+
+def top_displacement_euler_opensees(
+    physical_inputs: np.ndarray,
+) -> np.ndarray | float:
+    """Evaluate the Euler-Bernoulli variant with OpenSeesPy."""
 
     try:
         import openseespy.opensees as ops
@@ -479,6 +781,78 @@ def top_displacement_opensees(physical_inputs: np.ndarray) -> np.ndarray | float
     return float(displacements[0]) if was_vector else displacements
 
 
+def top_displacement_opensees(
+    physical_inputs: np.ndarray,
+    *,
+    poisson_ratio: float = DEFAULT_POISSON_RATIO,
+    shear_area_factor: float = DEFAULT_SHEAR_AREA_FACTOR,
+) -> np.ndarray | float:
+    """Evaluate the shear-deformable frame with OpenSeesPy."""
+
+    try:
+        import openseespy.opensees as ops
+    except (ImportError, RuntimeError) as exc:  # pragma: no cover - optional native package
+        raise ImportError(
+            "The five-storey frame requires OpenSeesPy. Install "
+            "requirements-structural.txt before running this benchmark."
+        ) from exc
+    if not (-1.0 < poisson_ratio < 0.5):
+        raise ValueError("poisson_ratio must be between -1 and 0.5.")
+    if shear_area_factor <= 0.0:
+        raise ValueError("shear_area_factor must be positive.")
+
+    values, was_vector = _as_2d(physical_inputs)
+    displacements = np.empty(values.shape[0], dtype=float)
+    for row_index, row in enumerate(values):
+        ops.wipe()
+        ops.model("basic", "-ndm", 2, "-ndf", 3)
+        for tag, (x_coordinate, y_coordinate) in NODE_COORDINATES.items():
+            ops.node(tag, x_coordinate, y_coordinate)
+        for node in BASE_NODES:
+            ops.fix(node, 1, 1, 1)
+
+        ops.geomTransf("Linear", 1)
+        for element_tag, (node_i, node_j, group) in enumerate(ALL_MEMBERS, start=1):
+            young_index, inertia_index, area_index = ELEMENT_PROPERTY_INDICES[group]
+            young = float(row[young_index])
+            area = float(row[area_index])
+            shear_modulus = young / (2.0 * (1.0 + poisson_ratio))
+            ops.element(
+                "ElasticTimoshenkoBeam",
+                element_tag,
+                node_i,
+                node_j,
+                young,
+                shear_modulus,
+                area,
+                float(row[inertia_index]),
+                shear_area_factor * area,
+                1,
+            )
+
+        ops.timeSeries("Linear", 1)
+        ops.pattern("Plain", 1, 1)
+        for node, input_index in zip(LOAD_NODES, LOAD_INPUT_INDICES):
+            ops.load(node, float(row[input_index]), 0.0, 0.0)
+
+        ops.constraints("Plain")
+        ops.numberer("RCM")
+        ops.system("BandSPD")
+        ops.test("NormDispIncr", 1.0e-12, 10)
+        ops.algorithm("Linear")
+        ops.integrator("LoadControl", 1.0)
+        ops.analysis("Static")
+        analysis_code = ops.analyze(1)
+        if analysis_code != 0:
+            ops.wipe()
+            raise RuntimeError(f"OpenSees analysis failed with code {analysis_code}.")
+
+        displacements[row_index] = float(ops.nodeDisp(TOP_RIGHT_NODE, 1))
+        ops.wipe()
+
+    return float(displacements[0]) if was_vector else displacements
+
+
 def five_story_frame_limit_state(
     z: np.ndarray, params: Mapping[str, object] | None = None
 ) -> np.ndarray:
@@ -499,8 +873,19 @@ def five_story_frame_limit_state(
         displacement = np.asarray(top_displacement_numpy(physical_2d), dtype=float)
     elif solver in {"banded", "reference"}:
         displacement = np.asarray(top_displacement_banded(physical_2d), dtype=float)
+    elif solver == "opensees_euler":
+        displacement = np.asarray(
+            top_displacement_euler_opensees(physical_2d), dtype=float
+        )
+    elif solver == "numpy_euler":
+        displacement = np.asarray(top_displacement_euler_numpy(physical_2d), dtype=float)
+    elif solver == "banded_euler":
+        displacement = np.asarray(top_displacement_euler_banded(physical_2d), dtype=float)
     else:
-        raise ValueError("solver must be 'opensees', 'numpy', or 'banded'.")
+        raise ValueError(
+            "solver must be 'opensees', 'numpy', 'banded', or an explicit "
+            "Euler variant."
+        )
 
     absolute_displacement = np.abs(displacement).reshape(-1)
     if response == "difference":
@@ -531,6 +916,8 @@ __all__ = [
     "BEAM_MEMBERS",
     "COLUMN_MEMBERS",
     "DEFAULT_DISPLACEMENT_LIMIT_M",
+    "DEFAULT_POISSON_RATIO",
+    "DEFAULT_SHEAR_AREA_FACTOR",
     "ELEMENT_PROPERTY_INDICES",
     "GAUSSIAN_COPULA_CHOLESKY",
     "GAUSSIAN_COPULA_CORRELATION",
@@ -546,6 +933,9 @@ __all__ = [
     "get_problem_definition",
     "standard_normal_to_physical",
     "top_displacement_banded",
+    "top_displacement_euler_banded",
+    "top_displacement_euler_numpy",
+    "top_displacement_euler_opensees",
     "top_displacement_numpy",
     "top_displacement_opensees",
 ]

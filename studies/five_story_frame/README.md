@@ -5,11 +5,19 @@ Sudret (2010), Marelli and Sudret (2018), and Wagner et al. (2022).  It uses
 21 correlated inputs, a Gaussian copula, and the top-right horizontal
 displacement limit state `g = 0.05 - u` in SI units.
 
-The production limit-state function calls OpenSeesPy.  An independent NumPy
-assembly and an exact symmetric-banded solver verify the model and make a
-large direct reference simulation feasible.  The banded solver is not a
-surrogate: it assembles the same 60-degree-of-freedom elastic stiffness matrix
-from 16 unit-property bases and solves it with LAPACK.
+The production limit-state function calls OpenSeesPy's
+`ElasticTimoshenkoBeam`.  The source papers say only that their in-house model
+is a linear finite-element model; they do not document its shear-deformation
+convention.  We therefore fix, before reliability estimation, the conventional
+values `nu = 0.30` and `As = 5A/6`.  This reconstruction reproduces the
+published 0.069 ft and 0.021 ft response moments without scaling the response.
+
+An independent dense NumPy assembly and an exact symmetric-banded solver
+verify the OpenSees model and make a large direct reference simulation
+feasible.  The banded solver is not a surrogate: it assembles and solves the
+same 60-degree-of-freedom Timoshenko stiffness matrix with LAPACK.  A complete
+Euler-Bernoulli sensitivity model is retained separately; it reproduces Li et
+al.'s alternate direct-MCS moments of 0.0652 ft and 0.0202 ft.
 
 Run the independent randomized quasi-Monte Carlo reference with:
 
@@ -26,15 +34,15 @@ pseudorandom Monte Carlo, defines the reported uncertainty interval.
 - Marelli and Sudret (2018) report `Pf = 1.54e-3` with a 95% importance-
   sampling interval `[1.51e-3, 1.56e-3]` at the 5 cm threshold.  They report
   A-bPCE at `1.49e-3` using 235 model calls.
-- Li et al. (2019) report direct-MCS displacement moments of 0.0652 ft and
-  0.0202 ft from 100,000 evaluations.  These agree with this implementation.
+- The conventional Timoshenko reconstruction reproduces the older benchmark
+  moments of 0.069 ft and 0.021 ft.  The explicit Euler-Bernoulli sensitivity
+  reproduces Li et al.'s direct-MCS moments of 0.0652 ft and 0.0202 ft.
 - Wagner et al. (2022) use the same dependent input model at a 9 cm threshold
   and report a direct-MCS reference `Pf = 1.49e-6` from `10^8` evaluations.
 
-The older 0.069 ft quadrature mean quoted alongside the Li et al. comparison
-does not agree with that paper's own direct MCS (0.0652 ft).  It is retained as
-a documented source discrepancy and is not used to rescale or calibrate the
-finite-element response.
+The two moment pairs reflect an under-specified element formulation in the
+published benchmark.  Both variants, the fixed modeling assumptions, and all
+raw results are retained; no empirical response factor is used.
 
 ## Sources
 
@@ -44,4 +52,3 @@ finite-element response.
   <https://doi.org/10.1108/EC-04-2017-0140>.
 - P.-R. Wagner et al., *Structural Safety* 96 (2022), 102179,
   <https://doi.org/10.1016/j.strusafe.2021.102179>.
-

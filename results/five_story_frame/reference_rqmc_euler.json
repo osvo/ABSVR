@@ -1,0 +1,180 @@
+{
+  "status": "complete",
+  "protocol": {
+    "method": "independently scrambled Sobol RQMC",
+    "power": 17,
+    "replicates": 16,
+    "master_seed": 20260809,
+    "n_per_replicate": 131072,
+    "total_true_model_calls": 2097152,
+    "displacement_limit_m": 0.05,
+    "solver": "exact symmetric-banded Euler-Bernoulli finite element",
+    "formulation_role": "documented sensitivity, not the primary reconstruction",
+    "chunk_size": 16384,
+    "confidence_interval": "Student-t interval across independent scrambles"
+  },
+  "software": {
+    "numpy": "1.26.4",
+    "scipy": "1.11.4",
+    "git_revision": "8af3d2cb7912acf45a30cd68a1a13f5263d9f1bf"
+  },
+  "replicates": [
+    {
+      "replicate": 0,
+      "scramble_seed": 2340553142,
+      "n_calls": 131072,
+      "failure_count": 121,
+      "failure_probability": 0.00092315673828125,
+      "response_mean_m": 0.019821370665652673,
+      "response_standard_deviation_m": 0.006110649798068526
+    },
+    {
+      "replicate": 1,
+      "scramble_seed": 852377907,
+      "n_calls": 131072,
+      "failure_count": 126,
+      "failure_probability": 0.0009613037109375,
+      "response_mean_m": 0.019821711194689815,
+      "response_standard_deviation_m": 0.006113909927334866
+    },
+    {
+      "replicate": 2,
+      "scramble_seed": 963366429,
+      "n_calls": 131072,
+      "failure_count": 115,
+      "failure_probability": 0.00087738037109375,
+      "response_mean_m": 0.019821817466289,
+      "response_standard_deviation_m": 0.0061139829004444556
+    },
+    {
+      "replicate": 3,
+      "scramble_seed": 3968301784,
+      "n_calls": 131072,
+      "failure_count": 117,
+      "failure_probability": 0.00089263916015625,
+      "response_mean_m": 0.019821398197347257,
+      "response_standard_deviation_m": 0.00611193371236321
+    },
+    {
+      "replicate": 4,
+      "scramble_seed": 601969721,
+      "n_calls": 131072,
+      "failure_count": 120,
+      "failure_probability": 0.00091552734375,
+      "response_mean_m": 0.019821657514305868,
+      "response_standard_deviation_m": 0.006112961091688839
+    },
+    {
+      "replicate": 5,
+      "scramble_seed": 1289000624,
+      "n_calls": 131072,
+      "failure_count": 127,
+      "failure_probability": 0.00096893310546875,
+      "response_mean_m": 0.019821471260358246,
+      "response_standard_deviation_m": 0.0061126671393954436
+    },
+    {
+      "replicate": 6,
+      "scramble_seed": 95276333,
+      "n_calls": 131072,
+      "failure_count": 126,
+      "failure_probability": 0.0009613037109375,
+      "response_mean_m": 0.01982183343543223,
+      "response_standard_deviation_m": 0.006114993578090691
+    },
+    {
+      "replicate": 7,
+      "scramble_seed": 2924695535,
+      "n_calls": 131072,
+      "failure_count": 115,
+      "failure_probability": 0.00087738037109375,
+      "response_mean_m": 0.019821681988780464,
+      "response_standard_deviation_m": 0.006113532666484726
+    },
+    {
+      "replicate": 8,
+      "scramble_seed": 988425949,
+      "n_calls": 131072,
+      "failure_count": 128,
+      "failure_probability": 0.0009765625,
+      "response_mean_m": 0.019821845272741744,
+      "response_standard_deviation_m": 0.006114477847008915
+    },
+    {
+      "replicate": 9,
+      "scramble_seed": 3203306101,
+      "n_calls": 131072,
+      "failure_count": 126,
+      "failure_probability": 0.0009613037109375,
+      "response_mean_m": 0.019821687990489903,
+      "response_standard_deviation_m": 0.0061133217334695
+    },
+    {
+      "replicate": 10,
+      "scramble_seed": 4228454269,
+      "n_calls": 131072,
+      "failure_count": 118,
+      "failure_probability": 0.0009002685546875,
+      "response_mean_m": 0.019821447872424437,
+      "response_standard_deviation_m": 0.006110885132043136
+    },
+    {
+      "replicate": 11,
+      "scramble_seed": 3007490966,
+      "n_calls": 131072,
+      "failure_count": 126,
+      "failure_probability": 0.0009613037109375,
+      "response_mean_m": 0.01982171917485026,
+      "response_standard_deviation_m": 0.006114652701594972
+    },
+    {
+      "replicate": 12,
+      "scramble_seed": 407477652,
+      "n_calls": 131072,
+      "failure_count": 120,
+      "failure_probability": 0.00091552734375,
+      "response_mean_m": 0.019821586645220927,
+      "response_standard_deviation_m": 0.0061135677930482775
+    },
+    {
+      "replicate": 13,
+      "scramble_seed": 3412585428,
+      "n_calls": 131072,
+      "failure_count": 113,
+      "failure_probability": 0.00086212158203125,
+      "response_mean_m": 0.019821758381017057,
+      "response_standard_deviation_m": 0.006114113885271961
+    },
+    {
+      "replicate": 14,
+      "scramble_seed": 176083687,
+      "n_calls": 131072,
+      "failure_count": 110,
+      "failure_probability": 0.0008392333984375,
+      "response_mean_m": 0.01982170546534837,
+      "response_standard_deviation_m": 0.006113892165852481
+    },
+    {
+      "replicate": 15,
+      "scramble_seed": 10643854,
+      "n_calls": 131072,
+      "failure_count": 114,
+      "failure_probability": 0.0008697509765625,
+      "response_mean_m": 0.01982150062691025,
+      "response_standard_deviation_m": 0.006111872866302465
+    }
+  ],
+  "summary": {
+    "failure_probability": 0.0009164810180664062,
+    "replicate_standard_deviation": 4.430088374362009e-05,
+    "standard_error": 1.1075220935905023e-05,
+    "confidence_interval_95": [
+      0.0008928747434356023,
+      0.0009400872926972102
+    ],
+    "published_is_probability": 0.00154,
+    "relative_difference_from_published_is": 0.4048824558010349,
+    "response_mean_m": 0.019821637071991156,
+    "response_standard_deviation_m": 0.006113213433653904
+  }
+}
