@@ -73,3 +73,42 @@ def test_squared_epsilon_dual_uses_separate_multiplier_penalties(monkeypatch) ->
     np.testing.assert_allclose(captured["H"], expected, rtol=0.0, atol=0.0)
     assert captured["upper_bound"] is None
     assert model["Loss"] == "squared_epsilon"
+
+
+def test_square_loss_solves_exact_lssvr_system_without_qp(monkeypatch) -> None:
+    def fail_qp(*args, **kwargs):
+        raise AssertionError("square loss must not invoke the epsilon-SVR QP")
+
+    monkeypatch.setattr(train_internal_module, "_solve_qp", fail_qp)
+    x = np.linspace(-1.5, 1.5, 11).reshape(-1, 1)
+    y = np.sin(x[:, 0])
+    c_value = 100.0
+    model = svr_train_internal(
+        _training_parameters(x, y),
+        np.array([c_value, 0.0, 0.8]),
+        "Gaussian",
+        loss="square",
+    )
+
+    kernel = np.asarray(model["Kernelmatrix"])
+    beta = np.asarray(model["parameter"])
+    residual = (kernel + np.eye(x.shape[0]) / c_value) @ beta + model["bias"] - y
+    np.testing.assert_allclose(residual, 0.0, atol=2.0e-10, rtol=0.0)
+    assert abs(float(np.sum(beta))) < 2.0e-10
+    np.testing.assert_array_equal(model["SV"], np.arange(x.shape[0]))
+    assert model["epsilon"] == 0.0
+
+
+def test_square_loss_prediction_variance_is_finite_and_nonnegative() -> None:
+    x = np.linspace(-2.0, 2.0, 15).reshape(-1, 1)
+    y = x[:, 0] ** 2 - 0.4
+    model = svr_train_internal(
+        _training_parameters(x, y),
+        np.array([500.0, 0.0, 0.6]),
+        "Gaussian",
+        loss="square",
+    )
+    prediction, variance = svr_predict(x, model)
+    assert float(np.sqrt(np.mean((prediction - y) ** 2))) < 3.0e-2
+    assert np.all(np.isfinite(variance))
+    assert np.all(variance >= 0.0)

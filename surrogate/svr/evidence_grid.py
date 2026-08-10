@@ -9,7 +9,7 @@ from typing import Any, Sequence
 import numpy as np
 
 from .kernel_utils import normalize_kernel_name
-from .loss_utils import LEGACY_LOSS, normalize_loss
+from .loss_utils import LEGACY_LOSS, SQUARE_LOSS, normalize_loss
 from .model import _svr_likelihood
 from .train_internal import svr_train_internal
 
@@ -108,7 +108,13 @@ class PeriodicEvidenceGridTrainer:
             best = None
         else:
             best = np.asarray(raw_best, dtype=float).reshape(-1)
-            if best.size != 3 or np.any(~np.isfinite(best)) or np.any(best <= 0.0):
+            if best.size != 3 or np.any(~np.isfinite(best)):
+                raise ValueError("Invalid evidence-trainer hyperparameters in checkpoint.")
+            invalid_positive = bool(np.any(best[[0, 2]] <= 0.0))
+            invalid_epsilon = bool(
+                best[1] < 0.0 or (self.loss != SQUARE_LOSS and best[1] == 0.0)
+            )
+            if invalid_positive or invalid_epsilon:
                 raise ValueError("Invalid evidence-trainer hyperparameters in checkpoint.")
         history = state.get("history", [])
         if not isinstance(history, list) or not all(isinstance(item, dict) for item in history):
@@ -135,7 +141,9 @@ class PeriodicEvidenceGridTrainer:
                 [self._best[2] * factor for factor in self.theta_factors],
                 *self.theta_bounds,
             )
-        epsilon_values = tuple(float(value) for value in self.epsilon_grid)
+        epsilon_values = (0.0,) if self.loss == SQUARE_LOSS else tuple(
+            float(value) for value in self.epsilon_grid
+        )
         return c_values, epsilon_values, theta_values
 
     def __call__(

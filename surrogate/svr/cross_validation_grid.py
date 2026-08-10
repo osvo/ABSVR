@@ -10,7 +10,7 @@ import numpy as np
 
 from .evidence_grid import _normalized_training_parameters
 from .kernel_utils import normalize_kernel_name
-from .loss_utils import LEGACY_LOSS, normalize_loss
+from .loss_utils import LEGACY_LOSS, SQUARE_LOSS, normalize_loss
 from .predict import svr_predict
 from .train_internal import svr_train_internal
 
@@ -77,8 +77,15 @@ class PeriodicCrossValidationGridTrainer:
             )
         raw_best = state.get("best_hyperparameters")
         best = None if raw_best is None else np.asarray(raw_best, dtype=float).reshape(-1)
-        if best is not None and (best.size != 3 or np.any(best <= 0.0)):
-            raise ValueError("Invalid cross-validation hyperparameters in checkpoint.")
+        if best is not None:
+            if best.size != 3:
+                raise ValueError("Invalid cross-validation hyperparameters in checkpoint.")
+            if (
+                np.any(best[[0, 2]] <= 0.0)
+                or best[1] < 0.0
+                or (self.loss != SQUARE_LOSS and best[1] == 0.0)
+            ):
+                raise ValueError("Invalid cross-validation hyperparameters in checkpoint.")
         history = state.get("history", [])
         if not isinstance(history, list) or not all(isinstance(item, dict) for item in history):
             raise ValueError("Invalid cross-validation history in checkpoint.")
@@ -145,9 +152,10 @@ class PeriodicCrossValidationGridTrainer:
             best_key = (float("inf"), float("inf"), float("inf"), float("inf"), float("inf"))
             best = None
             evaluated = 0
+            epsilon_values = (0.0,) if self.loss == SQUARE_LOSS else self.epsilon_grid
             for c_value, epsilon_value, theta_value in product(
                 self.c_grid,
-                self.epsilon_grid,
+                epsilon_values,
                 self.theta_grid,
             ):
                 hyperparameters = np.concatenate(

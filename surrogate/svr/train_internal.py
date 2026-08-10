@@ -17,7 +17,7 @@ except ImportError:  # pragma: no cover - optional
     _HAVE_CVXOPT = False
 
 from .kernel_utils import compute_kernel
-from .loss_utils import LEGACY_LOSS, SQUARED_EPSILON_LOSS, normalize_loss
+from .loss_utils import LEGACY_LOSS, SQUARE_LOSS, SQUARED_EPSILON_LOSS, normalize_loss
 
 
 def _solve_qp(
@@ -110,7 +110,7 @@ def svr_train_internal(
     loss = normalize_loss(loss)
 
     C = float(hyperparameters[0])
-    epsilon = float(hyperparameters[1])
+    epsilon = 0.0 if loss == SQUARE_LOSS else float(hyperparameters[1])
     theta = hyperparameters[2:]
 
     X = par["X"]
@@ -122,7 +122,26 @@ def svr_train_internal(
     kernel[np.diag_indices_from(kernel)] += 2.0 * mu
     kernel1 = kernel + np.diag(np.full(m, 1.0 / C))
 
-    if loss == SQUARED_EPSILON_LOSS:
+    if loss == SQUARE_LOSS:
+        # ABSVR1 / least-squares SVR.  The primal square-loss objective has
+        # a constant Hessian, so the exact optimum follows from one symmetric
+        # linear system with an unpenalized intercept:
+        #   (K + I/C) beta + 1 b = y,  1' beta = 0.
+        system = np.empty((m + 1, m + 1), dtype=float)
+        system[:m, :m] = kernel1
+        system[:m, m] = 1.0
+        system[m, :m] = 1.0
+        system[m, m] = 0.0
+        rhs = np.concatenate([Y, [0.0]])
+        try:
+            solution = np.linalg.solve(system, rhs)
+        except np.linalg.LinAlgError:
+            solution = np.linalg.lstsq(system, rhs, rcond=None)[0]
+        beta = solution[:m]
+        bias = float(solution[m])
+        prediction = kernel @ beta
+        support_vector_mask = np.ones(m, dtype=bool)
+    elif loss == SQUARED_EPSILON_LOSS:
         # Epsilon-insensitive squared loss: the 1/C multiplier penalty acts on
         # alpha and alpha-star separately and the multipliers are unbounded.
         hb = np.block([[kernel1, -kernel], [-kernel, kernel1]])
@@ -132,21 +151,21 @@ def svr_train_internal(
         # the regularized kernel in every signed block and a C box constraint.
         hb = np.block([[kernel1, -kernel1], [-kernel1, kernel1]])
         upper_bound = C
-    f = np.concatenate([(epsilon - Y), (epsilon + Y)])
-
-    aeq = np.concatenate([np.ones(m), -np.ones(m)])
-    beq = 0.0
-
-    alpha = _solve_qp(hb, f, aeq, beq, upper_bound)
-    alpha_pos = alpha[:m]
-    alpha_neg = alpha[m:]
-
-    beta = alpha_pos - alpha_neg
-
-    prediction = kernel @ beta
+    if loss != SQUARE_LOSS:
+        f = np.concatenate([(epsilon - Y), (epsilon + Y)])
+        aeq = np.concatenate([np.ones(m), -np.ones(m)])
+        beq = 0.0
+        alpha = _solve_qp(hb, f, aeq, beq, upper_bound)
+        alpha_pos = alpha[:m]
+        alpha_neg = alpha[m:]
+        beta = alpha_pos - alpha_neg
+        prediction = kernel @ beta
 
     sv_tol = 1e-10
-    if loss == SQUARED_EPSILON_LOSS:
+    if loss == SQUARE_LOSS:
+        # Every observation participates in least-squares SVR.
+        pass
+    elif loss == SQUARED_EPSILON_LOSS:
         active_pos = alpha_pos > sv_tol
         active_neg = alpha_neg > sv_tol
         b_candidates = []

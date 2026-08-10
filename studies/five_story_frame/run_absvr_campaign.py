@@ -22,6 +22,7 @@ from benchmarks.five_story_frame_opensees import (
     get_problem_definition,
 )
 from surrogate.svr import PeriodicEvidenceGridTrainer, svr_predict
+from surrogate.svr.loss_utils import normalize_loss
 
 
 DEFAULT_DEVELOPMENT_SEEDS = (11, 53, 101)
@@ -166,6 +167,7 @@ def _run_one(
     validation_base_seed: int,
     verbose: bool,
     learning_strategy: str,
+    loss: str,
 ) -> dict[str, Any]:
     adaptive_module = importlib.import_module("absvr_core.adaptive_loop")
     pool_size = 1 << pool_log2
@@ -174,10 +176,10 @@ def _run_one(
     adaptive_module.MAX_MCS_POOL_SIZE = pool_size
 
     trainer = PeriodicEvidenceGridTrainer(
-        retune_interval=20, loss="squared_epsilon"
+        retune_interval=20, loss=loss
     )
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
-    checkpoint = checkpoint_dir / f"seed_{seed}_{learning_strategy}.npz"
+    checkpoint = checkpoint_dir / f"seed_{seed}_{learning_strategy}_{loss}.npz"
     result = run_adaptive_svr(
         "five_story_frame",
         added_points,
@@ -212,6 +214,7 @@ def _run_one(
         "added_points": int(added_points),
         "candidate_pool_size": int(pool_size),
         "learning_strategy": learning_strategy,
+        "svr_loss": loss,
         "adaptive_pool_pf_diagnostic": float(result.probability_of_failure),
         "evidence_history": trainer.history,
         "validation": validation,
@@ -258,6 +261,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--configuration-development-used-reference-probability", action="store_true")
     parser.add_argument("--initial-samples", type=int, default=43)
     parser.add_argument("--added-points", type=int, default=80)
+    parser.add_argument("--loss", default="squared_epsilon")
     parser.add_argument("--pool-log2", type=int, default=17)
     parser.add_argument(
         "--learning-strategy",
@@ -273,6 +277,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--verbose", action="store_true")
     args = parser.parse_args(argv)
+    args.loss = normalize_loss(args.loss)
 
     if min(args.initial_samples, args.added_points, args.pool_log2) < 1:
         raise SystemExit("Initial size, added points, and pool exponent must be positive.")
@@ -302,6 +307,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             validation_base_seed=args.validation_base_seed,
             verbose=args.verbose,
             learning_strategy=args.learning_strategy,
+            loss=args.loss,
         )
         runs.append(run)
         print(
@@ -333,7 +339,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "response_preserves_original_failure_event": True,
             "added_points": int(args.added_points),
             "candidate_pool_size": int(1 << args.pool_log2),
-            "svr_loss": "squared_epsilon",
+            "svr_loss": args.loss,
             "kernel": "gaussian",
             "gradient_weight": 0.0,
             "learning_strategy": args.learning_strategy,

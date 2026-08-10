@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from .kernel_utils import compute_kernel, expand_theta
-from .loss_utils import LEGACY_LOSS, SQUARED_EPSILON_LOSS, normalize_loss
+from .loss_utils import LEGACY_LOSS, SQUARE_LOSS, SQUARED_EPSILON_LOSS, normalize_loss
 from .train_internal import svr_train_internal
 
 
@@ -113,19 +113,24 @@ def _svr_likelihood(
 
     C = hyp[0]
     epsilon = model["epsilon"]
-    idx = np.where(np.abs(delta) > epsilon)[0]
-    if idx.size:
-        excess = np.abs(delta[idx]) - epsilon
-        if loss == SQUARED_EPSILON_LOSS:
-            loss_sum = float(0.5 * np.sum(excess**2))
-        else:
-            loss_sum = float(np.sum(excess))
+    if loss == SQUARE_LOSS:
+        loss_sum = float(0.5 * np.sum(delta**2))
     else:
-        loss_sum = 0.0
+        idx = np.where(np.abs(delta) > epsilon)[0]
+        if idx.size:
+            excess = np.abs(delta[idx]) - epsilon
+            if loss == SQUARED_EPSILON_LOSS:
+                loss_sum = float(0.5 * np.sum(excess**2))
+            else:
+                loss_sum = float(np.sum(excess))
+        else:
+            loss_sum = 0.0
 
     sv = model["SV"]
     if sv.size:
-        if loss == SQUARED_EPSILON_LOSS:
+        if loss == SQUARE_LOSS:
+            sign, logdet = np.linalg.slogdet(np.eye(kernel.shape[0]) + C * kernel)
+        elif loss == SQUARED_EPSILON_LOSS:
             evidence_curvature = np.eye(sv.size) + C * kernel[np.ix_(sv, sv)]
             sign, logdet = np.linalg.slogdet(evidence_curvature)
         else:
@@ -140,8 +145,11 @@ def _svr_likelihood(
     numsv = sv.size
     term1 = 0.5 * parameter @ (kernel @ parameter)
     term2 = C * loss_sum
-    term3 = kernel.shape[0] * math.log(math.sqrt(2.0 * math.pi / C) + 2.0 * epsilon)
-    if loss == SQUARED_EPSILON_LOSS:
+    if loss == SQUARE_LOSS:
+        term3 = 0.5 * kernel.shape[0] * math.log(2.0 * math.pi / C)
+    else:
+        term3 = kernel.shape[0] * math.log(math.sqrt(2.0 * math.pi / C) + 2.0 * epsilon)
+    if loss in {SQUARE_LOSS, SQUARED_EPSILON_LOSS}:
         term4 = 0.5 * logdet
     else:
         term4 = 0.5 * (numsv * math.log(C) + logdet)

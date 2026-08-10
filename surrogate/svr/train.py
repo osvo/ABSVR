@@ -7,7 +7,7 @@ import numpy as np
 from scipy.spatial.distance import pdist
 
 from .kernel_utils import normalize_kernel_name
-from .loss_utils import LEGACY_LOSS, normalize_loss
+from .loss_utils import LEGACY_LOSS, SQUARE_LOSS, normalize_loss
 from .model import svr_model
 
 
@@ -117,6 +117,7 @@ def train_svr(
     dict
         Trained SVR model dictionary.
     """
+    loss = normalize_loss(loss)
     mode = (bounds_mode or os.getenv("ABSVR_SVR_BOUNDS_MODE", "python")).strip().lower()
     if mode not in {"python", "baseline"}:
         raise ValueError("bounds_mode must be 'python' or 'baseline'.")
@@ -141,7 +142,12 @@ def train_svr(
 
     # User-provided values override data-driven defaults
     svr_c_init = float(c_init) if c_init is not None else dd_c
-    svr_epsilon_init = float(epsilon_init) if epsilon_init is not None else dd_eps
+    if loss == SQUARE_LOSS:
+        svr_epsilon_init = 0.0
+        svr_epsilon_lb = 0.0
+        svr_epsilon_ub = 0.0
+    else:
+        svr_epsilon_init = float(epsilon_init) if epsilon_init is not None else dd_eps
 
     if theta_init is not None:
         svr_theta_init = np.full(n_dim, float(theta_init))
@@ -170,6 +176,6 @@ def train_svr(
         lb,
         ub,
         covariance,
-        loss=normalize_loss(loss),
+        loss=loss,
     )
 

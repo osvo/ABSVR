@@ -85,3 +85,23 @@ def test_squared_epsilon_evidence_choice_is_explicit_and_resumable() -> None:
     restored = PeriodicEvidenceGridTrainer(**settings)
     restored.load_state_dict(trainer.state_dict())
     assert restored.state_dict() == trainer.state_dict()
+
+
+def test_square_loss_evidence_has_no_epsilon_search_dimension() -> None:
+    trainer = PeriodicEvidenceGridTrainer(
+        retune_interval=2,
+        initial_c_grid=(10.0, 100.0),
+        epsilon_grid=(1.0e-5, 1.0e-3, 1.0e-2),
+        initial_theta_grid=(0.1, 0.2),
+        c_factors=(1.0,),
+        theta_factors=(1.0,),
+        loss="square",
+    )
+    x = np.linspace(-1.0, 1.0, 8)[:, None]
+    y = np.cos(x[:, 0]) - 0.7
+    model = trainer(x, y, 1)
+
+    assert model["Loss"] == "square"
+    assert model["epsilon"] == 0.0
+    assert trainer.history[0]["epsilon"] == 0.0
+    assert trainer.history[0]["candidates_evaluated"] == 4
