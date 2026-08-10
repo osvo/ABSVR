@@ -14,6 +14,34 @@ SLF_PENALTY_FACTOR = 100.0  # ζ in thesis Eq. 3.5 (NOT ξ_i slack variables)
 NUMERICAL_STABILITY_TERM = 1e-8
 
 
+def _gradient_factor(
+    points: np.ndarray,
+    model,
+    grad_weight: float,
+) -> np.ndarray:
+    """Return ``1 + w * normalized_gradient_norm`` for candidate points."""
+
+    factor = np.ones(points.shape[0], dtype=float)
+    if model is None or grad_weight <= 0.0 or not points.size:
+        return factor
+    try:
+        gradients = svr_mean_grad(points, model)
+    except Exception:
+        return factor
+    gradients = np.asarray(gradients, dtype=float)
+    if not gradients.size:
+        return factor
+    if gradients.ndim == 1:
+        gradients = gradients.reshape(-1, 1)
+    grad_norm = np.linalg.norm(gradients, axis=1)
+    grad_norm = np.where(np.isfinite(grad_norm), grad_norm, 0.0)
+    max_grad = float(np.max(grad_norm)) if grad_norm.size else 0.0
+    if max_grad > 0.0 and np.isfinite(max_grad):
+        normalized = np.clip(grad_norm / max_grad, 0.0, 1.0)
+        factor = 1.0 + grad_weight * normalized
+    return factor
+
+
 def compute_learning_function(
     mc_pool: np.ndarray,
     doe: np.ndarray,
@@ -31,9 +59,9 @@ def compute_learning_function(
     ``strategy='u'`` uses the standard misclassification score
     ``abs(mu) / sigma`` inside the same adaptive sampling region.
     ``strategy='u_distance'`` maximizes the product of Gaussian sign-
-    misclassification probability and nearest-design distance.  Because the
-    selector minimizes this function, the returned value is the negative log
-    of that product.
+    misclassification probability, nearest-design distance, and the optional
+    gradient modulation.  Because the selector minimizes this function, the
+    returned value is the negative log of that product.
     """
 
     grad_weight = float(w_grad)
@@ -81,9 +109,14 @@ def compute_learning_function(
         pairwise_sq = region_sq + doe_sq[None, :] - 2.0 * mc_pool_region @ doe.T
         pairwise_sq = np.maximum(pairwise_sq, 0.0)
         min_distance = np.sqrt(np.min(pairwise_sq, axis=1))
+        grad_factor = _gradient_factor(
+            mc_pool_region,
+            model,
+            grad_weight,
+        )
         log_utility = log_ndtr(-u_score) + np.log(
             np.maximum(min_distance, NUMERICAL_STABILITY_TERM)
-        )
+        ) + np.log(grad_factor)
         lf = -log_utility
         lf = np.where(np.isfinite(lf), lf, np.inf)
         return lf, mc_pool_region, region_indices
@@ -102,24 +135,7 @@ def compute_learning_function(
     pairwise_sq = np.maximum(pairwise_sq, 0.0)
     min_distance = np.sqrt(np.min(pairwise_sq, axis=1))
 
-    grad_factor = np.ones_like(min_distance, dtype=float)
-    if model is not None and grad_weight > 0.0 and mc_pool_region.size:
-        try:
-            gradients = svr_mean_grad(mc_pool_region, model)
-        except Exception:
-            gradients = None
-        if gradients is not None and gradients.size:
-            gradients = np.asarray(gradients, dtype=float)
-            if gradients.ndim == 1:
-                gradients = gradients.reshape(-1, 1)
-            grad_norm = np.linalg.norm(gradients, axis=1)
-            grad_norm = np.where(np.isfinite(grad_norm), grad_norm, 0.0)
-            if grad_norm.size:
-                max_grad = np.max(grad_norm)
-                if max_grad > 0.0 and np.isfinite(max_grad):
-                    grad_norm = grad_norm / max_grad
-                    grad_norm = np.clip(grad_norm, 0.0, 1.0)
-                    grad_factor = 1.0 + grad_weight * grad_norm
+    grad_factor = _gradient_factor(mc_pool_region, model, grad_weight)
 
     max_abs_g = np.max(np.abs(g_predict_region))
     if max_abs_g == 0:

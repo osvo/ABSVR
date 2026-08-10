@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from absvr_core.learning_function import compute_learning_function
+from absvr_core import learning_function as learning_function_module
 
 
 def _inputs():
@@ -89,4 +90,33 @@ def test_u_distance_rejects_duplicate_even_when_its_u_score_is_smaller():
     )
 
     np.testing.assert_array_equal(indices, np.array([1, 2]))
+    assert score[1] < score[0]
+
+
+def test_u_distance_applies_optional_gradient_modulation(monkeypatch):
+    pool = np.array([[-1.0], [1.0], [2.0]])
+    doe = np.array([[0.0]])
+    prediction = np.array([0.1, 0.1, 0.4])
+    variance = np.array([0.01, 0.01, 0.01])
+    density = np.array([0.5, 1.0, 0.1])
+
+    monkeypatch.setattr(
+        learning_function_module,
+        "svr_mean_grad",
+        lambda points, model: np.array([[0.0], [2.0]]),
+    )
+    score, region, indices = compute_learning_function(
+        pool,
+        doe,
+        prediction,
+        variance,
+        density,
+        current_pf=0.5,
+        model=object(),
+        w_grad=1.0,
+        strategy="u_distance",
+    )
+
+    np.testing.assert_array_equal(indices, np.array([0, 1]))
+    np.testing.assert_array_equal(region, pool[:2])
     assert score[1] < score[0]

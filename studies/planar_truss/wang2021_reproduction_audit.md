@@ -139,6 +139,12 @@ metrics consistently:
   42.08%.  In that worst run, the out-of-fold balanced sign error was zero,
   demonstrating that sign accuracy on an adaptively concentrated design is
   not a reliable proxy for the probability mass of the global failure domain.
+- using the fixed C = 1e3, epsilon = 1e-3, theta = 0.00625 profile throughout
+  a boundary-diversity campaign.  The three-seed gate reduced the standard
+  deviation to 2.382e-5, but all three runs overestimated failure probability;
+  the error of the mean and the mean absolute error were both 4.71%, compared
+  with 2.35% and 2.75% for evidence tuning on the same seeds.  The remaining
+  ten trajectories were therefore not run.
 
 The last result is stored in
 `results/planar_truss/pool20_development_seed11.json`.  None of the discarded
@@ -156,12 +162,16 @@ A small global grid, evaluated on all 13 development designs, identified a
 stable region at C = 1e3, epsilon = 1e-3, and theta = 0.00625.  Using this one
 profile only for final refitting reduced the across-seed standard deviation to
 1.073e-4, the mean absolute error to 5.53%, and the worst error to 15.02%; its
-mean still had 1.54% error.  Because these constants were selected after
-inspecting the reference, they are development-only.  The next controlled test
-will use the same fixed profile throughout acquisition, with the already
-defined boundary-diversity score and a 55-call budget.  It will first run on
-three development seeds and will be extended only if the complete adaptive
-trajectory improves the robust metrics.
+mean still had 1.54% error.  The adaptive test above showed that this stability
+does not carry over when the same profile controls enrichment.
+
+The next controlled test returns to the evidence trainer and extends the
+boundary-diversity utility by the existing thesis gradient modulation.  With
+gradient weight one, its utility is fixed before evaluation as
+Phi(-U) * d_min * (1 + normalized gradient norm).  This changes no
+hyperparameter and reuses the thesis contribution that the jurors explicitly
+recommended evaluating by ablation.  It will first run on three development
+seeds at 55 calls.
 
 The squared-epsilon branch already implements the exact active-set curvature:
 its dual contains the separate 1/C multiplier penalties, its predictive
