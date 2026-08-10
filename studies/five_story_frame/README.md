@@ -29,6 +29,19 @@ The default protocol uses 16 independently scrambled Sobol replicates of
 `2^17` points.  The replicate dispersion, rather than a binomial formula for
 pseudorandom Monte Carlo, defines the reported uncertainty interval.
 
+Run the three-seed ABSVR development campaign with:
+
+```powershell
+.\.venv\Scripts\python.exe -m studies.five_story_frame.run_absvr_campaign
+```
+
+Its fixed starting profile uses a 43-point normal LHS (`2M+1` for 21 inputs),
+80 single-point enrichments, squared epsilon-insensitive loss, and a `2^17`
+candidate population.  The reference probability and the post-training
+validation set are unavailable to the adaptive loop.  All OpenSees calls in
+the initial design and enrichment sequence count toward the reported budget;
+the separately labeled reference audit does not.
+
 ## Literature checkpoints
 
 - Marelli and Sudret (2018) report `Pf = 1.54e-3` with a 95% importance-
