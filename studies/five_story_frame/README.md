@@ -68,6 +68,13 @@ used the original evidence-retuning schedule and required no additional
 structural calls.  This is reference-aware budget selection and remains
 development evidence only until the frozen, disjoint-seed confirmation passes.
 
+The frozen 143-call profile failed confirmation on ten disjoint seeds.  Its
+mean estimate had 6.09% error, the mean absolute error across runs was 15.44%,
+and the worst run had 40.70% error.  The profile is rejected; the favorable
+three-seed development result is not used as manuscript evidence.  The full
+failed confirmation is retained in
+`results/five_story_frame/confirmation_campaign.json`.
+
 ## Literature checkpoints
 
 - Marelli and Sudret (2018) report `Pf = 1.54e-3` with a 95% importance-

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "frozen_before_confirmation",
+  "status": "confirmation_failed",
   "benchmark": "published five-storey three-bay frame evaluated with OpenSeesPy",
   "development_algorithm_seeds": [11, 53, 101],
   "confirmation_algorithm_seeds": [127, 139, 151, 163, 179, 191, 211, 223, 239, 251],
@@ -36,5 +36,13 @@
     "maximum_relative_error_of_mean_pf_percent": 3.0,
     "maximum_individual_run_error_percent": 5.0,
     "selected_calls": 143
+  },
+  "confirmation_outcome": {
+    "path": "results/five_story_frame/confirmation_campaign.json",
+    "runs": 10,
+    "relative_error_of_mean_pf_percent": 6.094095358383328,
+    "mean_absolute_run_error_percent": 15.440479949479002,
+    "maximum_absolute_run_error_percent": 40.70097884433218,
+    "decision": "reject the 143-call profile"
   }
 }
