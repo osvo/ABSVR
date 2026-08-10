@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "status": "frozen_before_confirmation",
+  "benchmark": "published five-storey three-bay frame evaluated with OpenSeesPy",
+  "development_algorithm_seeds": [11, 53, 101],
+  "confirmation_algorithm_seeds": [127, 139, 151, 163, 179, 191, 211, 223, 239, 251],
+  "development_and_confirmation_seeds_disjoint": true,
+  "configuration_development_used_reference_probability": true,
+  "training_loop_uses_reference_probability": false,
+  "training_loop_uses_validation_set": false,
+  "configuration": {
+    "svr_loss": "squared_epsilon",
+    "kernel": "gaussian",
+    "gradient_weight": 0.0,
+    "learning_strategy": "u_distance",
+    "initial_design": "43-point isoprobabilistic normal LHS",
+    "response": "log(displacement_limit / abs(top_displacement))",
+    "response_preserves_original_failure_event": true,
+    "total_opensees_calls_per_run": 143,
+    "added_points": 100,
+    "candidate_pool_size": 131072,
+    "hyperparameter_selection": "periodic deterministic Bayesian-evidence grid",
+    "hyperparameter_retune_interval": 20
+  },
+  "validation": {
+    "method": "independently scrambled Sobol RQMC after model freezing",
+    "replications": 8,
+    "samples_per_replication": 262144,
+    "base_seed": 20260901,
+    "reference_evaluations_counted_as_absvr_calls": false
+  },
+  "development_budget_report": "results/five_story_frame/u_distance_budget_prefixes.json",
+  "frozen_algorithm_commit": "6b38ea3ee048cdef5fabf6a0919e3323f75b4d62",
+  "selection_rule": {
+    "rule": "minimum budget meeting both development accuracy thresholds",
+    "maximum_relative_error_of_mean_pf_percent": 3.0,
+    "maximum_individual_run_error_percent": 5.0,
+    "selected_calls": 143
+  }
+}
