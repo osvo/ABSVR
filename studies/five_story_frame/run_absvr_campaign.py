@@ -6,6 +6,7 @@ import argparse
 import importlib
 import json
 import os
+import subprocess
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -24,6 +25,15 @@ from surrogate.svr import PeriodicEvidenceGridTrainer, svr_predict
 
 
 DEFAULT_DEVELOPMENT_SEEDS = (11, 53, 101)
+
+
+def _git_revision() -> str | None:
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], text=True, stderr=subprocess.DEVNULL
+        ).strip()
+    except (OSError, subprocess.CalledProcessError):
+        return None
 
 
 def _parse_int_list(value: str) -> tuple[int, ...]:
@@ -341,6 +351,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             "replications": int(args.validation_replications),
             "base_seed": int(args.validation_base_seed),
             "posthoc_only": True,
+        },
+        "software": {
+            "numpy": np.__version__,
+            "git_revision": _git_revision(),
         },
         "summary": _summarize(runs, reference_pf),
         "runs": runs,
