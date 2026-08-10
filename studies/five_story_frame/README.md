@@ -53,6 +53,13 @@ the three-seed mean to 13.25%, but individual errors still ranged from 1.86%
 to 30.34%.  This profile is also rejected at that budget; the complete result
 is retained in `results/five_story_frame/u_distance_development.json`.
 
+Extending the same three reference-aware development paths to 235 calls (the
+published A-bPCE budget) produced individual errors of 0.095%, 0.600%, and
+4.642% against the independent RQMC reference.  The error of the mean estimate
+was 1.779%.  This is a candidate profile, not a confirmation result; the
+extension decision used the preceding development results and is disclosed in
+`results/five_story_frame/u_distance_budget235_development.json`.
+
 ## Literature checkpoints
 
 - Marelli and Sudret (2018) report `Pf = 1.54e-3` with a 95% importance-
