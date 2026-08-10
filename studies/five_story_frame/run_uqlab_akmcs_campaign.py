@@ -64,7 +64,7 @@ def _validate_uqlab_core(path: Path) -> Path:
 
 def _load_result(path: Path, seed: int) -> dict[str, Any]:
     result = json.loads(path.read_text(encoding="utf-8"))
-    if result.get("profile") != "native_akmcs" or int(result.get("seed", -1)) != seed:
+    if result.get("profile") != "published_akmcs" or int(result.get("seed", -1)) != seed:
         raise ValueError(f"Result metadata mismatch: {path}")
     if int(result["model_evaluations_uqlab"]) != int(
         result["model_evaluations_opensees_ledger"]
@@ -73,8 +73,10 @@ def _load_result(path: Path, seed: int) -> dict[str, Any]:
     expected = {
         "learning_function": "U",
         "kriging_covariance": "Gaussian",
-        "convergence": "stopU",
-        "convergence_threshold": 2.0,
+        "convergence": "stopPf15",
+        "convergence_relative_pf_range_tolerance": 0.15,
+        "convergence_required_consecutive_iterations": 2,
+        "maximum_total_evaluations": 300,
         "internal_mcs_size": 1_000_000,
         "initial_design": {"sampling": "LHS", "size": 40},
     }
@@ -107,12 +109,13 @@ def summarize_results(
         standard_deviation = 0.0
     return {
         "schema_version": 1,
-        "method": "direct UQLab native AK-MCS with OpenSeesPy",
-        "profile": "native_akmcs",
+        "method": "direct UQLab native AK-MCS with published frame stopping criterion and OpenSeesPy",
+        "profile": "published_akmcs",
         "selection_uses_reference_probability": False,
         "selection_uses_validation_set": False,
         "algorithm_seeds": list(seeds),
         "runs": len(results),
+        "converged_runs": int(sum(bool(result["converged"]) for result in results)),
         "mean_pf": mean_pf,
         "mean_pf_student_t_95_percent_interval_across_seeds": [
             float(interval[0]),
@@ -163,12 +166,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         "status": "frozen_before_campaign",
         "algorithm_seeds": list(args.seeds),
         "initial_design": {"sampling": "LHS", "size": 40},
-        "method": "native UQLab AKMCS",
+        "method": "native UQLab AKMCS with published frame stopping criterion",
         "kriging_covariance": "Gaussian",
         "learning_function": "U",
-        "convergence": {"criterion": "stopU", "threshold": 2.0},
+        "convergence": {
+            "criterion": "relative Kriging Pf bound range",
+            "threshold": 0.15,
+            "consecutive_iterations": 2,
+        },
         "internal_mcs_size": 1_000_000,
-        "max_added_design": 960,
+        "max_added_design": 260,
+        "maximum_total_evaluations": 300,
         "selection_uses_reference_probability": False,
         "selection_uses_validation_set": False,
         "matlab_executable": str(matlab),

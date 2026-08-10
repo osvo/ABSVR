@@ -7,10 +7,11 @@ import pytest
 from studies.five_story_frame.run_uqlab_akmcs_campaign import summarize_results
 
 
-def _result(seed: int, pf: float, calls: int) -> dict:
+def _result(seed: int, pf: float, calls: int, converged: bool = True) -> dict:
     return {
         "seed": seed,
         "pf": pf,
+        "converged": converged,
         "model_evaluations_opensees_ledger": calls,
     }
 
@@ -22,6 +23,7 @@ def test_uqlab_frame_summary_uses_all_declared_runs() -> None:
         reference_pf=0.00151,
     )
     assert summary["runs"] == 2
+    assert summary["converged_runs"] == 2
     assert summary["mean_pf"] == pytest.approx(0.00155)
     assert summary["mean_open_sees_calls"] == pytest.approx(230.0)
     assert summary["minimum_open_sees_calls"] == 210

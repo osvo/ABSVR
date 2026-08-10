@@ -49,8 +49,8 @@ function summary = run_uqlab_akmcs(seed, outputFile)
     analysisOptions.AKMCS.IExpDesign.Sampling = 'LHS';
     analysisOptions.AKMCS.IExpDesign.N = 40;
     analysisOptions.AKMCS.Kriging.Corr.Family = 'Gaussian';
-    analysisOptions.AKMCS.MaxAddedED = 960;
-    analysisOptions.AKMCS.Convergence = 'stopU';
+    analysisOptions.AKMCS.MaxAddedED = 260;
+    analysisOptions.AKMCS.Convergence = 'stopPf15';
 
     analysis = uq_createAnalysis(analysisOptions);
     result = analysis.Results;
@@ -62,14 +62,28 @@ function summary = run_uqlab_akmcs(seed, outputFile)
     end
 
     summary.schema_version = 1;
-    summary.method = 'direct UQLab native AK-MCS with OpenSeesPy';
-    summary.profile = 'native_akmcs';
+    historyPf = result.History.Pf;
+    historyPfLower = result.History.PfLower;
+    historyPfUpper = result.History.PfUpper;
+    converged = isfield(analysis.Internal.Runtime, ...
+        'ABSVR_stopPf15_converged') && ...
+        analysis.Internal.Runtime.ABSVR_stopPf15_converged == 1;
+
+    summary.method = ['direct UQLab native AK-MCS with OpenSeesPy and ' ...
+        'published frame stopping criterion'];
+    summary.profile = 'published_akmcs';
     summary.seed = seed;
+    summary.status = ternary(converged, 'converged', ...
+        'maximum_evaluations_reached');
+    summary.converged = converged;
     summary.pf = result.Pf;
     summary.beta = result.Beta;
     summary.cov = result.CoV;
-    summary.pf_ci = result.PfCI;
-    summary.beta_ci = result.BetaCI;
+    summary.pf_binomial_ci = result.PfCI;
+    summary.beta_binomial_ci = result.BetaCI;
+    summary.pf_surrogate_bounds = [historyPfLower(end), historyPfUpper(end)];
+    summary.beta_surrogate_bounds = [-norminv(historyPfUpper(end)), ...
+        -norminv(historyPfLower(end))];
     summary.model_evaluations_uqlab = result.ModelEvaluations;
     summary.model_evaluations_opensees_ledger = ledgerEvaluations;
     summary.input_order = {'P1','P2','P3','E4','E5','I6','I7','I8','I9', ...
@@ -78,9 +92,11 @@ function summary = run_uqlab_akmcs(seed, outputFile)
     summary.internal_mcs_size = 1e6;
     summary.kriging_covariance = 'Gaussian';
     summary.learning_function = 'U';
-    summary.convergence = 'stopU';
-    summary.convergence_threshold = 2.0;
-    summary.max_added_design = 960;
+    summary.convergence = 'stopPf15';
+    summary.convergence_relative_pf_range_tolerance = 0.15;
+    summary.convergence_required_consecutive_iterations = 2;
+    summary.max_added_design = 260;
+    summary.maximum_total_evaluations = 300;
     summary.matlab_release = version('-release');
     summary.matlab_version = version;
     summary.uqlab_entrypoint = uqlabLocation;
@@ -97,6 +113,15 @@ function summary = run_uqlab_akmcs(seed, outputFile)
     movefile(temporaryFile, outputFile, 'f');
     matFile = replace(outputFile, ".json", ".mat");
     save(matFile, 'summary', 'analysisOptions', 'result');
+end
+
+
+function value = ternary(condition, trueValue, falseValue)
+    if condition
+        value = trueValue;
+    else
+        value = falseValue;
+    end
 end
 
 
