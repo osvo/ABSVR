@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "purpose": "development evaluation of a frozen local-linear boundary correction",
+  "configuration_uses_reference_probability": false,
+  "reference_used_only_for_postfit_audit": true,
+  "source_campaign": "results/planar_truss/u_score_development3_65calls.json",
+  "configuration": {
+    "calls": 55,
+    "weight": "exp(-weight_power * abs(g) / median(abs(g)))",
+    "weight_power": 1.0,
+    "ridge_alpha": 0.1,
+    "probability_formula": "Phi(-intercept / l2_norm(gradient))"
+  },
+  "independent_reference": {
+    "path": "results/planar_truss/reference_qmc.json",
+    "mean_pf": 0.0015082359313964844,
+    "confidence_interval_95": [
+      0.0015022002354417054,
+      0.0015142716273512634
+    ]
+  },
+  "summary": {
+    "runs": 3,
+    "mean_pf": 0.0015139461113034506,
+    "standard_deviation_pf": 0.00021098067117162087,
+    "relative_error_of_mean_pf_percent": 0.3785999118638624,
+    "mean_absolute_run_error_percent": 9.462189464606451,
+    "median_absolute_run_error_percent": 13.625384329113878,
+    "minimum_absolute_run_error_percent": 0.40947524214033953,
+    "maximum_absolute_run_error_percent": 14.351708822565138,
+    "mean_open_sees_limit_state_calls": 55.0
+  },
+  "runs": [
+    {
+      "algorithm_seed": 11,
+      "open_sees_limit_state_calls": 55,
+      "source_checkpoint": "results/planar_truss/u_score_development_checkpoints/seed_11_gradient_0_loss_squared_epsilon_tuning_evidence_learning_u.npz",
+      "fit": {
+        "failure_probability": 0.0017246935606278111,
+        "reliability_index": 2.9245643868540263,
+        "intercept": 0.2847832767996613,
+        "gradient": [
+          0.059242055435391204,
+          0.005862848096963045,
+          0.05396019530122313,
+          0.010090184674558265,
+          -0.006545721349024592,
+          -0.017692728958478975,
+          -0.03527671198740694,
+          -0.03108546251637607,
+          -0.01862893781618909,
+          -0.0033117242847535435
+        ],
+        "response_scale_median_abs": 0.04230690446824706,
+        "effective_weighted_sample_size": 30.961543207569058
+      },
+      "relative_error_vs_independent_reference_percent": 14.351708822565138
+    },
+    {
+      "algorithm_seed": 53,
+      "open_sees_limit_state_calls": 55,
+      "source_checkpoint": "results/planar_truss/u_score_development_checkpoints/seed_53_gradient_0_loss_squared_epsilon_tuning_evidence_learning_u.npz",
+      "fit": {
+        "failure_probability": 0.0015144117841286177,
+        "reliability_index": 2.964797369759431,
+        "intercept": 0.3451290282622236,
+        "gradient": [
+          0.07024437066289112,
+          0.016197975061435575,
+          0.06790341186426167,
+          0.011676920502007795,
+          -0.0016578053931417516,
+          -0.024144971894978978,
+          -0.034982211902558985,
+          -0.03542592433074302,
+          -0.019622297011976483,
+          -0.012556523003652993
+        ],
+        "response_scale_median_abs": 0.056519468430683555,
+        "effective_weighted_sample_size": 32.445223704404235
+      },
+      "relative_error_vs_independent_reference_percent": 0.40947524214033953
+    },
+    {
+      "algorithm_seed": 101,
+      "open_sees_limit_state_calls": 55,
+      "source_checkpoint": "results/planar_truss/u_score_development_checkpoints/seed_101_gradient_0_loss_squared_epsilon_tuning_evidence_learning_u.npz",
+      "fit": {
+        "failure_probability": 0.001302732989153923,
+        "reliability_index": 3.0108161011194534,
+        "intercept": 0.37298406312859533,
+        "gradient": [
+          0.07604936965854438,
+          0.009309317893148527,
+          0.07155308857239714,
+          0.008951374604087799,
+          -0.005156119595377706,
+          -0.021714063544495718,
+          -0.033516172201389444,
+          -0.044165886067012966,
+          -0.02652224828062758,
+          0.0009901584824225506
+        ],
+        "response_scale_median_abs": 0.045849785838128224,
+        "effective_weighted_sample_size": 30.931987082060257
+      },
+      "relative_error_vs_independent_reference_percent": 13.625384329113878
+    }
+  ]
+}
