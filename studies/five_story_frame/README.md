@@ -60,6 +60,14 @@ was 1.779%.  This is a candidate profile, not a confirmation result; the
 extension decision used the preceding development results and is disclosed in
 `results/five_story_frame/u_distance_budget235_development.json`.
 
+A predeclared prefix rule then selected the smallest stored budget with at
+most 3% error in the development mean and at most 5% error in every
+development seed.  The selected 143-call prefix produced individual errors of
+0.158%, 0.537%, and 1.295%, and 0.200% error in the mean.  Prefix reconstruction
+used the original evidence-retuning schedule and required no additional
+structural calls.  This is reference-aware budget selection and remains
+development evidence only until the frozen, disjoint-seed confirmation passes.
+
 ## Literature checkpoints
 
 - Marelli and Sudret (2018) report `Pf = 1.54e-3` with a 95% importance-
