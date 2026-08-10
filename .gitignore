@@ -20,6 +20,8 @@ Log_uq_selftest.txt
 results/planar_truss/*checkpoints/
 results/five_story_frame/*checkpoints/
 results/planar_truss/uqlab*/uqlab_*.mat
+results/five_story_frame/uqlab*/uqlab_*.mat
+results/five_story_frame/uqlab_*_smoke/
 results/planar_truss/diagnostic_*
 results/planar_truss/pilot_*
 results/planar_truss/precheck_*
