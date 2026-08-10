@@ -12,9 +12,11 @@ distributions.  All finite-element calculations use kN and m consistently.
 
 from __future__ import annotations
 
+from functools import lru_cache
 from typing import Mapping
 
 import numpy as np
+from scipy.linalg import solveh_banded
 from scipy.special import ndtr, ndtri
 
 
@@ -320,6 +322,104 @@ def top_displacement_numpy(physical_inputs: np.ndarray) -> np.ndarray | float:
     return float(displacements[0]) if was_vector else displacements
 
 
+@lru_cache(maxsize=1)
+def _reduced_stiffness_bands() -> tuple[np.ndarray, int]:
+    """Return 16 unit-property stiffness bases in lower-band storage."""
+
+    n_dof = 3 * len(NODE_COORDINATES)
+    restrained = {3 * (node - 1) + dof for node in BASE_NODES for dof in range(3)}
+    free = np.array([dof for dof in range(n_dof) if dof not in restrained], dtype=int)
+    dense_bases: list[np.ndarray] = []
+
+    for group in ELEMENT_PROPERTY_INDICES:
+        for property_type in ("EA", "EI"):
+            stiffness = np.zeros((n_dof, n_dof), dtype=float)
+            for node_i, node_j, member_group in ALL_MEMBERS:
+                if member_group != group:
+                    continue
+                if property_type == "EA":
+                    element = _frame_element_global_stiffness(
+                        node_i, node_j, area=1.0, young_modulus=1.0, moment_of_inertia=0.0
+                    )
+                else:
+                    element = _frame_element_global_stiffness(
+                        node_i, node_j, area=0.0, young_modulus=1.0, moment_of_inertia=1.0
+                    )
+                dofs = [
+                    3 * (node_i - 1),
+                    3 * (node_i - 1) + 1,
+                    3 * (node_i - 1) + 2,
+                    3 * (node_j - 1),
+                    3 * (node_j - 1) + 1,
+                    3 * (node_j - 1) + 2,
+                ]
+                stiffness[np.ix_(dofs, dofs)] += element
+            dense_bases.append(stiffness[np.ix_(free, free)])
+
+    dense = np.asarray(dense_bases)
+    nonzero_rows, nonzero_columns = np.where(np.max(np.abs(dense), axis=0) > 0.0)
+    half_bandwidth = int(np.max(np.abs(nonzero_rows - nonzero_columns)))
+    banded = np.zeros((dense.shape[0], half_bandwidth + 1, dense.shape[1]), dtype=float)
+    for offset in range(half_bandwidth + 1):
+        for column in range(dense.shape[1] - offset):
+            banded[:, offset, column] = dense[:, column + offset, column]
+    return banded, half_bandwidth
+
+
+def top_displacement_banded(
+    physical_inputs: np.ndarray, *, chunk_size: int = 16_384
+) -> np.ndarray | float:
+    """Fast exact frame response for independent reference simulations.
+
+    The global stiffness is a linear combination of eight ``EA`` and eight
+    ``EI`` bases.  The regular frame has lower half-bandwidth 14 after removing
+    the fixed-base degrees of freedom, so LAPACK's symmetric positive-definite
+    band solver avoids both surrogate approximation and dense 60-by-60 solves.
+    """
+
+    values, was_vector = _as_2d(physical_inputs)
+    if chunk_size < 1:
+        raise ValueError("chunk_size must be positive.")
+    stiffness_bases, _ = _reduced_stiffness_bands()
+    displacements = np.empty(values.shape[0], dtype=float)
+    top_right_horizontal_dof_in_reduced_system = 3 * (TOP_RIGHT_NODE - 1) - 12
+
+    for chunk_start in range(0, values.shape[0], chunk_size):
+        chunk_end = min(chunk_start + chunk_size, values.shape[0])
+        chunk = values[chunk_start:chunk_end]
+        coefficients: list[np.ndarray] = []
+        for young_index, inertia_index, area_index in ELEMENT_PROPERTY_INDICES.values():
+            coefficients.extend(
+                [
+                    chunk[:, young_index] * chunk[:, area_index],
+                    chunk[:, young_index] * chunk[:, inertia_index],
+                ]
+            )
+        coefficient_matrix = np.asarray(coefficients).T
+        banded_stiffness = np.einsum(
+            "bi,ikn->bkn", coefficient_matrix, stiffness_bases, optimize=True
+        )
+
+        loads = np.zeros((chunk.shape[0], 60), dtype=float)
+        for node, input_index in zip(LOAD_NODES, LOAD_INPUT_INDICES):
+            loads[:, 3 * (node - 5)] = chunk[:, input_index]
+
+        for local_index in range(chunk.shape[0]):
+            response = solveh_banded(
+                banded_stiffness[local_index],
+                loads[local_index],
+                lower=True,
+                overwrite_ab=True,
+                overwrite_b=True,
+                check_finite=False,
+            )
+            displacements[chunk_start + local_index] = response[
+                top_right_horizontal_dof_in_reduced_system
+            ]
+
+    return float(displacements[0]) if was_vector else displacements
+
+
 def top_displacement_opensees(physical_inputs: np.ndarray) -> np.ndarray | float:
     """Evaluate the frame with OpenSeesPy elastic beam-column elements."""
 
@@ -397,8 +497,10 @@ def five_story_frame_limit_state(
         displacement = np.asarray(top_displacement_opensees(physical_2d), dtype=float)
     elif solver == "numpy":
         displacement = np.asarray(top_displacement_numpy(physical_2d), dtype=float)
+    elif solver in {"banded", "reference"}:
+        displacement = np.asarray(top_displacement_banded(physical_2d), dtype=float)
     else:
-        raise ValueError("solver must be 'opensees' or 'numpy'.")
+        raise ValueError("solver must be 'opensees', 'numpy', or 'banded'.")
 
     absolute_displacement = np.abs(displacement).reshape(-1)
     if response == "difference":
@@ -443,6 +545,7 @@ __all__ = [
     "five_story_frame_limit_state",
     "get_problem_definition",
     "standard_normal_to_physical",
+    "top_displacement_banded",
     "top_displacement_numpy",
     "top_displacement_opensees",
 ]
