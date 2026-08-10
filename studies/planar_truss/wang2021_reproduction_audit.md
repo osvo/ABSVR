@@ -153,13 +153,23 @@ metrics consistently:
   margin.  Its paired three-seed errors were 22.67%, 11.22%, and 19.63%, all
   much worse than the log-ratio campaign.  The equivalent log response is
   therefore retained as a deliberate regression-conditioning choice, without
-  claiming it reproduces the response used by Wang et al.
+  claiming it reproduces the response used by Wang et al.;
+- performing a reference-blind anisotropic coordinate sweep on the final
+  three boundary-diversity designs.  Starting from each selected isotropic
+  evidence model, the sweep held C and epsilon fixed and tested theta
+  multipliers {0.25, 0.5, 1, 2, 4} one coordinate at a time.  Training
+  evidence improved in every run, but the resulting failure-probability
+  errors were 2.88%, 2.94%, and 7.43%.  Their mean absolute error (4.42%) and
+  error of the mean (2.46%) were both worse than the corresponding isotropic
+  values (2.75% and 2.35%).  This confirms that better evidence on an adaptive
+  boundary design is not sufficient evidence of better global reliability
+  estimation.
 
 The last result is stored in
 `results/planar_truss/pool20_development_seed11.json`.  None of the discarded
 variants may be selected post hoc for the article.
 
-## Next controlled comparison
+## Decision after the controlled comparisons
 
 The acquisition experiments indicate that model selection, rather than lack of
 candidate diversity alone, is the next bottleneck.  The current deterministic
@@ -174,14 +184,18 @@ profile only for final refitting reduced the across-seed standard deviation to
 mean still had 1.54% error.  The adaptive test above showed that this stability
 does not carry over when the same profile controls enrichment.
 
-The next controlled diagnostic keeps the better log-ratio response and revisits
-anisotropic optimization without the unstable all-at-once box-min search.  On
-each already evaluated design, it will start from the selected isotropic
-evidence model, hold C and epsilon fixed, and perform one deterministic
-coordinate sweep over each theta_k using multiplicative factors
-{0.25, 0.5, 1, 2, 4}.  The procedure uses training evidence only and costs no
-new limit-state calls.  A three-seed refit gate will determine whether it is
-worth embedding the refinement inside the adaptive loop.
+The deterministic anisotropic coordinate sweep described above also failed its
+three-seed gate.  Further tuning on this exposed seed set would increase the
+risk of selecting a chance cancellation rather than a robust improvement.  No
+additional truss-specific heuristic will therefore be promoted to confirmation.
+
+Development now moves to the five-storey, three-bay frame of Marelli and Sudret
+(2018).  That problem has 21 correlated random inputs, a finite-element response,
+and published FORM, SORM, AK-MCS, A-bPCE, and importance-sampling results.  It
+therefore provides a more direct test of the manuscript's structural-reliability
+claim than further optimization on the present truss.  The truss remains a
+transparent negative result and regression benchmark; it will not be removed or
+relabelled to make the proposed method appear stronger.
 
 The squared-epsilon branch already implements the exact active-set curvature:
 its dual contains the separate 1/C multiplier penalties, its predictive
