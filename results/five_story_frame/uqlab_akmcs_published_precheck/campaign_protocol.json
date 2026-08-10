@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "status": "frozen_before_campaign",
+  "algorithm_seeds": [
+    11
+  ],
+  "initial_design": {
+    "sampling": "LHS",
+    "size": 40
+  },
+  "method": "native UQLab AKMCS with published frame stopping criterion",
+  "kriging_covariance": "Gaussian",
+  "learning_function": "U",
+  "convergence": {
+    "criterion": "relative Kriging Pf bound range",
+    "threshold": 0.15,
+    "consecutive_iterations": 2
+  },
+  "internal_mcs_size": 1000000,
+  "max_added_design": 260,
+  "maximum_total_evaluations": 300,
+  "selection_uses_reference_probability": false,
+  "selection_uses_validation_set": false,
+  "matlab_executable": "C:\\Program Files\\MATLAB\\R2025b\\bin\\matlab.exe",
+  "uqlab_core": "C:\\Users\\osvo\\Documents\\Codex\\2026-08-08\\us\\work\\UQLab_Rel2.1.0\\core"
+}
