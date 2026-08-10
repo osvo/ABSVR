@@ -149,6 +149,11 @@ metrics consistently:
   weight.  Its paired three-seed errors were 4.65%, 8.00%, and 19.57%, versus
   6.73%, 0.60%, and 0.92% without the gradient.  The large deterioration in
   the third run failed the extension gate.
+- replacing the log-ratio target by the conventional dimensional displacement
+  margin.  Its paired three-seed errors were 22.67%, 11.22%, and 19.63%, all
+  much worse than the log-ratio campaign.  The equivalent log response is
+  therefore retained as a deliberate regression-conditioning choice, without
+  claiming it reproduces the response used by Wang et al.
 
 The last result is stored in
 `results/planar_truss/pool20_development_seed11.json`.  None of the discarded
@@ -169,13 +174,14 @@ profile only for final refitting reduced the across-seed standard deviation to
 mean still had 1.54% error.  The adaptive test above showed that this stability
 does not carry over when the same profile controls enrichment.
 
-The next controlled test removes another material deviation from Wang et al.:
-the log-ratio target will be replaced by the conventional dimensional response
-`displacement_limit - abs(displacement)`.  This preserves the failure event but
-changes the regression geometry.  The evidence trainer, unmodulated
-boundary-diversity score, 2^17 pool, and 55-call budget remain fixed.  It will
-first run on three development seeds.  Only after the response comparison will
-anisotropic optimization be revisited, so that two changes are not confounded.
+The next controlled diagnostic keeps the better log-ratio response and revisits
+anisotropic optimization without the unstable all-at-once box-min search.  On
+each already evaluated design, it will start from the selected isotropic
+evidence model, hold C and epsilon fixed, and perform one deterministic
+coordinate sweep over each theta_k using multiplicative factors
+{0.25, 0.5, 1, 2, 4}.  The procedure uses training evidence only and costs no
+new limit-state calls.  A three-seed refit gate will determine whether it is
+worth embedding the refinement inside the adaptive loop.
 
 The squared-epsilon branch already implements the exact active-set curvature:
 its dual contains the separate 1/C multiplier penalties, its predictive

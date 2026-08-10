@@ -1,0 +1,319 @@
+{
+  "schema_version": 2,
+  "benchmark": "published 23-bar planar truss evaluated with OpenSeesPy",
+  "campaign_stage": "development",
+  "configuration_development_used_reference_probability": false,
+  "development_algorithm_seeds": [],
+  "selection_uses_reference_probability": false,
+  "selection_uses_validation_set": false,
+  "primary_metrics": [
+    "relative_error_vs_independent_reference_percent",
+    "open_sees_limit_state_calls"
+  ],
+  "training_protocol": {
+    "initial_design": "15-point isoprobabilistic normal LHS",
+    "response": "displacement_limit - abs(midspan_displacement)",
+    "response_identifier": "difference",
+    "response_preserves_original_failure_event": true,
+    "added_points": 40,
+    "candidate_pool_size": 131072,
+    "hyperparameter_selection": "periodic deterministic Bayesian-evidence grid",
+    "fixed_hyperparameters": null,
+    "hyperparameter_retune_interval": 20,
+    "svr_loss": "squared_epsilon",
+    "learning_strategy": "u_distance"
+  },
+  "independent_reference": {
+    "path": "results/planar_truss/reference_qmc.json",
+    "mean_pf": 0.0015082359313964844,
+    "confidence_interval_95": [
+      0.0015022002354417054,
+      0.0015142716273512634
+    ],
+    "published_direct_mcs_pf": 0.00152
+  },
+  "validation_protocol": {
+    "log2_samples": 17,
+    "replications": 2,
+    "base_seed": 20260808,
+    "posthoc_only": true
+  },
+  "summaries_by_gradient_weight": {
+    "0": {
+      "runs": 3,
+      "mean_surrogate_pf": 0.0016644795735677083,
+      "standard_deviation_surrogate_pf_across_algorithm_seeds": 0.0002828369294288531,
+      "mean_relative_error_percent": 17.841711455369374,
+      "relative_error_of_mean_pf_percent": 10.359363473495621,
+      "median_relative_error_percent": 19.633259563705344,
+      "minimum_relative_error_percent": 11.223521972810623,
+      "maximum_relative_error_percent": 22.66835282959216,
+      "mean_open_sees_limit_state_calls": 55.0,
+      "minimum_open_sees_limit_state_calls": 55,
+      "maximum_open_sees_limit_state_calls": 55
+    }
+  },
+  "runs": [
+    {
+      "algorithm_seed": 11,
+      "gradient_weight": 0.0,
+      "svr_loss": "squared_epsilon",
+      "hyperparameter_selection": "evidence",
+      "fixed_hyperparameters": null,
+      "learning_strategy": "u_distance",
+      "response": "difference",
+      "open_sees_limit_state_calls": 55,
+      "adaptive_candidate_pool_size": 131072,
+      "adaptive_pool_pf_diagnostic": 0.0016331888393674827,
+      "evidence_history": [
+        {
+          "n_samples": 15,
+          "C": 10000.0,
+          "epsilon": 1e-05,
+          "theta": 0.02,
+          "negative_log_evidence": 17.638526683272204,
+          "candidates_evaluated": 54,
+          "loss": "squared_epsilon"
+        },
+        {
+          "n_samples": 35,
+          "C": 1000.0,
+          "epsilon": 1e-05,
+          "theta": 0.01,
+          "negative_log_evidence": 12.363839139968938,
+          "candidates_evaluated": 45,
+          "loss": "squared_epsilon"
+        },
+        {
+          "n_samples": 55,
+          "C": 100.0,
+          "epsilon": 1e-05,
+          "theta": 0.01,
+          "negative_log_evidence": 8.702912345839621,
+          "candidates_evaluated": 45,
+          "loss": "squared_epsilon"
+        }
+      ],
+      "validation": {
+        "method": "independently scrambled Sobol RQMC, post-training",
+        "replications": 2,
+        "samples_per_replication": 131072,
+        "posthoc_reference_evaluations": 262144,
+        "reference_evaluations_counted_as_absvr_calls": false,
+        "surrogate_pf_mean": 0.001850128173828125,
+        "surrogate_pf_standard_deviation": 7.013235592212767e-05,
+        "same_points_true_pf_mean": 0.001575469970703125,
+        "relative_error_vs_independent_reference_percent": 22.66835282959216,
+        "confusion_counts": {
+          "true_positive": 379,
+          "false_positive": 106,
+          "false_negative": 34,
+          "true_negative": 261625
+        },
+        "sensitivity": 0.9176755447941889,
+        "precision": 0.7814432989690722,
+        "individual_replications": [
+          {
+            "seed": 20260808,
+            "samples": 131072,
+            "true_failures": 205,
+            "predicted_failures": 236,
+            "true_positive": 186,
+            "false_positive": 50,
+            "false_negative": 19,
+            "true_negative": 130817,
+            "true_pf": 0.00156402587890625,
+            "surrogate_pf": 0.001800537109375
+          },
+          {
+            "seed": 20260809,
+            "samples": 131072,
+            "true_failures": 208,
+            "predicted_failures": 249,
+            "true_positive": 193,
+            "false_positive": 56,
+            "false_negative": 15,
+            "true_negative": 130808,
+            "true_pf": 0.0015869140625,
+            "surrogate_pf": 0.00189971923828125
+          }
+        ]
+      },
+      "checkpoint": "results/planar_truss/difference_u_distance_development3_checkpoints/seed_11_gradient_0_loss_squared_epsilon_tuning_evidence_learning_u_distance_response_difference.npz"
+    },
+    {
+      "algorithm_seed": 53,
+      "gradient_weight": 0.0,
+      "svr_loss": "squared_epsilon",
+      "hyperparameter_selection": "evidence",
+      "fixed_hyperparameters": null,
+      "learning_strategy": "u_distance",
+      "response": "difference",
+      "open_sees_limit_state_calls": 55,
+      "adaptive_candidate_pool_size": 131072,
+      "adaptive_pool_pf_diagnostic": 0.0011371268087184809,
+      "evidence_history": [
+        {
+          "n_samples": 15,
+          "C": 10000.0,
+          "epsilon": 1e-05,
+          "theta": 0.1,
+          "negative_log_evidence": 16.50214414439423,
+          "candidates_evaluated": 54,
+          "loss": "squared_epsilon"
+        },
+        {
+          "n_samples": 35,
+          "C": 10000.0,
+          "epsilon": 1e-05,
+          "theta": 0.025,
+          "negative_log_evidence": 8.406782371921196,
+          "candidates_evaluated": 45,
+          "loss": "squared_epsilon"
+        },
+        {
+          "n_samples": 55,
+          "C": 10000.0,
+          "epsilon": 1e-05,
+          "theta": 0.0125,
+          "negative_log_evidence": -2.8303002678352414,
+          "candidates_evaluated": 45,
+          "loss": "squared_epsilon"
+        }
+      ],
+      "validation": {
+        "method": "independently scrambled Sobol RQMC, post-training",
+        "replications": 2,
+        "samples_per_replication": 131072,
+        "posthoc_reference_evaluations": 262144,
+        "reference_evaluations_counted_as_absvr_calls": false,
+        "surrogate_pf_mean": 0.001338958740234375,
+        "surrogate_pf_standard_deviation": 5.3947966093944364e-06,
+        "same_points_true_pf_mean": 0.001575469970703125,
+        "relative_error_vs_independent_reference_percent": 11.223521972810623,
+        "confusion_counts": {
+          "true_positive": 339,
+          "false_positive": 12,
+          "false_negative": 74,
+          "true_negative": 261719
+        },
+        "sensitivity": 0.8208232445520581,
+        "precision": 0.9658119658119658,
+        "individual_replications": [
+          {
+            "seed": 20260808,
+            "samples": 131072,
+            "true_failures": 205,
+            "predicted_failures": 176,
+            "true_positive": 167,
+            "false_positive": 9,
+            "false_negative": 38,
+            "true_negative": 130858,
+            "true_pf": 0.00156402587890625,
+            "surrogate_pf": 0.0013427734375
+          },
+          {
+            "seed": 20260809,
+            "samples": 131072,
+            "true_failures": 208,
+            "predicted_failures": 175,
+            "true_positive": 172,
+            "false_positive": 3,
+            "false_negative": 36,
+            "true_negative": 130861,
+            "true_pf": 0.0015869140625,
+            "surrogate_pf": 0.00133514404296875
+          }
+        ]
+      },
+      "checkpoint": "results/planar_truss/difference_u_distance_development3_checkpoints/seed_53_gradient_0_loss_squared_epsilon_tuning_evidence_learning_u_distance_response_difference.npz"
+    },
+    {
+      "algorithm_seed": 101,
+      "gradient_weight": 0.0,
+      "svr_loss": "squared_epsilon",
+      "hyperparameter_selection": "evidence",
+      "fixed_hyperparameters": null,
+      "learning_strategy": "u_distance",
+      "response": "difference",
+      "open_sees_limit_state_calls": 55,
+      "adaptive_candidate_pool_size": 131072,
+      "adaptive_pool_pf_diagnostic": 0.0015416081567861287,
+      "evidence_history": [
+        {
+          "n_samples": 15,
+          "C": 10000.0,
+          "epsilon": 1e-05,
+          "theta": 0.05,
+          "negative_log_evidence": 16.674720179108597,
+          "candidates_evaluated": 54,
+          "loss": "squared_epsilon"
+        },
+        {
+          "n_samples": 35,
+          "C": 10000.0,
+          "epsilon": 1e-05,
+          "theta": 0.0125,
+          "negative_log_evidence": 10.28580797737635,
+          "candidates_evaluated": 45,
+          "loss": "squared_epsilon"
+        },
+        {
+          "n_samples": 55,
+          "C": 1000.0,
+          "epsilon": 1e-05,
+          "theta": 0.0125,
+          "negative_log_evidence": 6.844484103338715,
+          "candidates_evaluated": 45,
+          "loss": "squared_epsilon"
+        }
+      ],
+      "validation": {
+        "method": "independently scrambled Sobol RQMC, post-training",
+        "replications": 2,
+        "samples_per_replication": 131072,
+        "posthoc_reference_evaluations": 262144,
+        "reference_evaluations_counted_as_absvr_calls": false,
+        "surrogate_pf_mean": 0.001804351806640625,
+        "surrogate_pf_standard_deviation": 4.8553169484549924e-05,
+        "same_points_true_pf_mean": 0.001575469970703125,
+        "relative_error_vs_independent_reference_percent": 19.633259563705344,
+        "confusion_counts": {
+          "true_positive": 383,
+          "false_positive": 90,
+          "false_negative": 30,
+          "true_negative": 261641
+        },
+        "sensitivity": 0.927360774818402,
+        "precision": 0.8097251585623678,
+        "individual_replications": [
+          {
+            "seed": 20260808,
+            "samples": 131072,
+            "true_failures": 205,
+            "predicted_failures": 241,
+            "true_positive": 189,
+            "false_positive": 52,
+            "false_negative": 16,
+            "true_negative": 130815,
+            "true_pf": 0.00156402587890625,
+            "surrogate_pf": 0.00183868408203125
+          },
+          {
+            "seed": 20260809,
+            "samples": 131072,
+            "true_failures": 208,
+            "predicted_failures": 232,
+            "true_positive": 194,
+            "false_positive": 38,
+            "false_negative": 14,
+            "true_negative": 130826,
+            "true_pf": 0.0015869140625,
+            "surrogate_pf": 0.00177001953125
+          }
+        ]
+      },
+      "checkpoint": "results/planar_truss/difference_u_distance_development3_checkpoints/seed_101_gradient_0_loss_squared_epsilon_tuning_evidence_learning_u_distance_response_difference.npz"
+    }
+  ]
+}

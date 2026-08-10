@@ -269,8 +269,8 @@ def run_one(
 
     state = load_checkpoint(checkpoint)
     doe = np.asarray(state["doe"], dtype=float)
-    response = np.asarray(state["g"], dtype=float)
-    model = trainer(doe, response, doe.shape[1], kernel="gaussian")
+    training_response = np.asarray(state["g"], dtype=float)
+    model = trainer(doe, training_response, doe.shape[1], kernel="gaussian")
     validation = _validate_model(
         model,
         reference_pf=reference_pf,
