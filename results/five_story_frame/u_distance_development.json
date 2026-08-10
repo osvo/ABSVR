@@ -1,0 +1,439 @@
+{
+  "schema_version": 1,
+  "benchmark": "published five-storey three-bay frame evaluated with OpenSeesPy",
+  "campaign_stage": "development",
+  "configuration_development_used_reference_probability": false,
+  "development_algorithm_seeds": [],
+  "algorithm_seeds": [
+    11,
+    53,
+    101
+  ],
+  "selection_uses_reference_probability": false,
+  "selection_uses_validation_set": false,
+  "primary_metrics": [
+    "relative_error_vs_independent_reference_percent",
+    "true_limit_state_calls"
+  ],
+  "training_protocol": {
+    "initial_design": "43-point isoprobabilistic normal LHS",
+    "response": "log(displacement_limit / abs(top_displacement))",
+    "response_preserves_original_failure_event": true,
+    "added_points": 80,
+    "candidate_pool_size": 131072,
+    "svr_loss": "squared_epsilon",
+    "kernel": "gaussian",
+    "gradient_weight": 0.0,
+    "learning_strategy": "u_distance",
+    "hyperparameter_selection": "periodic deterministic Bayesian-evidence grid",
+    "hyperparameter_retune_interval": 20
+  },
+  "independent_reference": {
+    "path": "results/five_story_frame/reference_rqmc.json",
+    "mean_pf": 0.0015101432800292969,
+    "confidence_interval_95": [
+      0.0014765051754769578,
+      0.001543781384581636
+    ],
+    "published_importance_sampling_pf": 0.00154
+  },
+  "validation_protocol": {
+    "log2_samples": 18,
+    "replications": 4,
+    "base_seed": 20260810,
+    "posthoc_only": true
+  },
+  "summary": {
+    "runs": 3,
+    "mean_surrogate_pf": 0.0017102559407552083,
+    "standard_deviation_surrogate_pf_across_algorithm_seeds": 0.0002445599808803356,
+    "relative_error_of_mean_pf_percent": 13.251236711925054,
+    "mean_absolute_run_error_percent": 14.493211240922008,
+    "median_absolute_run_error_percent": 11.272497631828228,
+    "minimum_absolute_run_error_percent": 1.8629617934954215,
+    "maximum_absolute_run_error_percent": 30.344174297442375,
+    "mean_true_limit_state_calls": 123.0,
+    "minimum_true_limit_state_calls": 123,
+    "maximum_true_limit_state_calls": 123
+  },
+  "runs": [
+    {
+      "algorithm_seed": 11,
+      "true_limit_state_calls": 123,
+      "initial_samples": 43,
+      "added_points": 80,
+      "candidate_pool_size": 131072,
+      "learning_strategy": "u_distance",
+      "adaptive_pool_pf_diagnostic": 0.001320691339929156,
+      "evidence_history": [
+        {
+          "n_samples": 43,
+          "C": 10000.0,
+          "epsilon": 1e-05,
+          "theta": 0.01,
+          "negative_log_evidence": 35.19198376278598,
+          "candidates_evaluated": 54,
+          "loss": "squared_epsilon"
+        },
+        {
+          "n_samples": 63,
+          "C": 100000.0,
+          "epsilon": 1e-05,
+          "theta": 0.005,
+          "negative_log_evidence": 6.375895967621773,
+          "candidates_evaluated": 45,
+          "loss": "squared_epsilon"
+        },
+        {
+          "n_samples": 83,
+          "C": 10000.0,
+          "epsilon": 1e-05,
+          "theta": 0.0025,
+          "negative_log_evidence": -6.1309851038186025,
+          "candidates_evaluated": 30,
+          "loss": "squared_epsilon"
+        },
+        {
+          "n_samples": 103,
+          "C": 100000.0,
+          "epsilon": 1e-05,
+          "theta": 0.005,
+          "negative_log_evidence": -33.44571227090688,
+          "candidates_evaluated": 45,
+          "loss": "squared_epsilon"
+        },
+        {
+          "n_samples": 123,
+          "C": 10000.0,
+          "epsilon": 1e-05,
+          "theta": 0.0025,
+          "negative_log_evidence": -56.29645986210613,
+          "candidates_evaluated": 30,
+          "loss": "squared_epsilon"
+        }
+      ],
+      "validation": {
+        "method": "independently scrambled Sobol RQMC after model freezing",
+        "replications": 4,
+        "samples_per_replication": 262144,
+        "posthoc_true_limit_state_evaluations": 1048576,
+        "posthoc_evaluations_counted_as_absvr_calls": false,
+        "surrogate_pf_mean": 0.0019683837890625,
+        "surrogate_pf_standard_deviation": 4.049093457054305e-05,
+        "same_points_true_pf_mean": 0.0015211105346679688,
+        "relative_error_vs_independent_reference_percent": 30.344174297442375,
+        "confusion_counts": {
+          "true_positive": 1533,
+          "false_positive": 531,
+          "false_negative": 62,
+          "true_negative": 1046450
+        },
+        "sensitivity": 0.961128526645768,
+        "precision": 0.7427325581395349,
+        "individual_replications": [
+          {
+            "seed": 20260810,
+            "samples": 262144,
+            "true_failures": 417,
+            "predicted_failures": 516,
+            "true_positive": 395,
+            "false_positive": 121,
+            "false_negative": 22,
+            "true_negative": 261606,
+            "true_pf": 0.001590728759765625,
+            "surrogate_pf": 0.0019683837890625
+          },
+          {
+            "seed": 20260811,
+            "samples": 262144,
+            "true_failures": 395,
+            "predicted_failures": 531,
+            "true_positive": 382,
+            "false_positive": 149,
+            "false_negative": 13,
+            "true_negative": 261600,
+            "true_pf": 0.001506805419921875,
+            "surrogate_pf": 0.002025604248046875
+          },
+          {
+            "seed": 20260812,
+            "samples": 262144,
+            "true_failures": 383,
+            "predicted_failures": 508,
+            "true_positive": 367,
+            "false_positive": 141,
+            "false_negative": 16,
+            "true_negative": 261620,
+            "true_pf": 0.001461029052734375,
+            "surrogate_pf": 0.0019378662109375
+          },
+          {
+            "seed": 20260813,
+            "samples": 262144,
+            "true_failures": 400,
+            "predicted_failures": 509,
+            "true_positive": 389,
+            "false_positive": 120,
+            "false_negative": 11,
+            "true_negative": 261624,
+            "true_pf": 0.00152587890625,
+            "surrogate_pf": 0.001941680908203125
+          }
+        ]
+      },
+      "checkpoint": "results/five_story_frame/u_distance_development_checkpoints/seed_11_u_distance.npz"
+    },
+    {
+      "algorithm_seed": 53,
+      "true_limit_state_calls": 123,
+      "initial_samples": 43,
+      "added_points": 80,
+      "candidate_pool_size": 131072,
+      "learning_strategy": "u_distance",
+      "adaptive_pool_pf_diagnostic": 0.0010528564453125,
+      "evidence_history": [
+        {
+          "n_samples": 43,
+          "C": 10000.0,
+          "epsilon": 1e-05,
+          "theta": 0.01,
+          "negative_log_evidence": 42.76504589379206,
+          "candidates_evaluated": 54,
+          "loss": "squared_epsilon"
+        },
+        {
+          "n_samples": 63,
+          "C": 10000.0,
+          "epsilon": 1e-05,
+          "theta": 0.005,
+          "negative_log_evidence": 16.9197085536926,
+          "candidates_evaluated": 45,
+          "loss": "squared_epsilon"
+        },
+        {
+          "n_samples": 83,
+          "C": 100000.0,
+          "epsilon": 1e-05,
+          "theta": 0.005,
+          "negative_log_evidence": -2.559119252731989,
+          "candidates_evaluated": 45,
+          "loss": "squared_epsilon"
+        },
+        {
+          "n_samples": 103,
+          "C": 10000.0,
+          "epsilon": 1e-05,
+          "theta": 0.0025,
+          "negative_log_evidence": -24.684597085017742,
+          "candidates_evaluated": 30,
+          "loss": "squared_epsilon"
+        },
+        {
+          "n_samples": 123,
+          "C": 10000.0,
+          "epsilon": 0.001,
+          "theta": 0.0025,
+          "negative_log_evidence": -50.720223907553134,
+          "candidates_evaluated": 45,
+          "loss": "squared_epsilon"
+        }
+      ],
+      "validation": {
+        "method": "independently scrambled Sobol RQMC after model freezing",
+        "replications": 4,
+        "samples_per_replication": 262144,
+        "posthoc_true_limit_state_evaluations": 1048576,
+        "posthoc_evaluations_counted_as_absvr_calls": false,
+        "surrogate_pf_mean": 0.0014820098876953125,
+        "surrogate_pf_standard_deviation": 2.0777555641642497e-05,
+        "same_points_true_pf_mean": 0.0015211105346679688,
+        "relative_error_vs_independent_reference_percent": 1.8629617934954215,
+        "confusion_counts": {
+          "true_positive": 1397,
+          "false_positive": 157,
+          "false_negative": 198,
+          "true_negative": 1046824
+        },
+        "sensitivity": 0.8758620689655172,
+        "precision": 0.898970398970399,
+        "individual_replications": [
+          {
+            "seed": 20260810,
+            "samples": 262144,
+            "true_failures": 417,
+            "predicted_failures": 387,
+            "true_positive": 353,
+            "false_positive": 34,
+            "false_negative": 64,
+            "true_negative": 261693,
+            "true_pf": 0.001590728759765625,
+            "surrogate_pf": 0.001476287841796875
+          },
+          {
+            "seed": 20260811,
+            "samples": 262144,
+            "true_failures": 395,
+            "predicted_failures": 388,
+            "true_positive": 349,
+            "false_positive": 39,
+            "false_negative": 46,
+            "true_negative": 261710,
+            "true_pf": 0.001506805419921875,
+            "surrogate_pf": 0.0014801025390625
+          },
+          {
+            "seed": 20260812,
+            "samples": 262144,
+            "true_failures": 383,
+            "predicted_failures": 383,
+            "true_positive": 337,
+            "false_positive": 46,
+            "false_negative": 46,
+            "true_negative": 261715,
+            "true_pf": 0.001461029052734375,
+            "surrogate_pf": 0.001461029052734375
+          },
+          {
+            "seed": 20260813,
+            "samples": 262144,
+            "true_failures": 400,
+            "predicted_failures": 396,
+            "true_positive": 358,
+            "false_positive": 38,
+            "false_negative": 42,
+            "true_negative": 261706,
+            "true_pf": 0.00152587890625,
+            "surrogate_pf": 0.0015106201171875
+          }
+        ]
+      },
+      "checkpoint": "results/five_story_frame/u_distance_development_checkpoints/seed_53_u_distance.npz"
+    },
+    {
+      "algorithm_seed": 101,
+      "true_limit_state_calls": 123,
+      "initial_samples": 43,
+      "added_points": 80,
+      "candidate_pool_size": 131072,
+      "learning_strategy": "u_distance",
+      "adaptive_pool_pf_diagnostic": 0.0010840356663002321,
+      "evidence_history": [
+        {
+          "n_samples": 43,
+          "C": 10000.0,
+          "epsilon": 1e-05,
+          "theta": 0.01,
+          "negative_log_evidence": 34.52774529384311,
+          "candidates_evaluated": 54,
+          "loss": "squared_epsilon"
+        },
+        {
+          "n_samples": 63,
+          "C": 10000.0,
+          "epsilon": 1e-05,
+          "theta": 0.005,
+          "negative_log_evidence": 10.369070047397912,
+          "candidates_evaluated": 45,
+          "loss": "squared_epsilon"
+        },
+        {
+          "n_samples": 83,
+          "C": 100000.0,
+          "epsilon": 1e-05,
+          "theta": 0.005,
+          "negative_log_evidence": -13.20983855860095,
+          "candidates_evaluated": 45,
+          "loss": "squared_epsilon"
+        },
+        {
+          "n_samples": 103,
+          "C": 100000.0,
+          "epsilon": 1e-05,
+          "theta": 0.0025,
+          "negative_log_evidence": -27.76140023881709,
+          "candidates_evaluated": 30,
+          "loss": "squared_epsilon"
+        },
+        {
+          "n_samples": 123,
+          "C": 100000.0,
+          "epsilon": 1e-05,
+          "theta": 0.0025,
+          "negative_log_evidence": -62.61018156562511,
+          "candidates_evaluated": 30,
+          "loss": "squared_epsilon"
+        }
+      ],
+      "validation": {
+        "method": "independently scrambled Sobol RQMC after model freezing",
+        "replications": 4,
+        "samples_per_replication": 262144,
+        "posthoc_true_limit_state_evaluations": 1048576,
+        "posthoc_evaluations_counted_as_absvr_calls": false,
+        "surrogate_pf_mean": 0.0016803741455078125,
+        "surrogate_pf_standard_deviation": 3.1533805256238925e-05,
+        "same_points_true_pf_mean": 0.0015211105346679688,
+        "relative_error_vs_independent_reference_percent": 11.272497631828228,
+        "confusion_counts": {
+          "true_positive": 1469,
+          "false_positive": 293,
+          "false_negative": 126,
+          "true_negative": 1046688
+        },
+        "sensitivity": 0.9210031347962383,
+        "precision": 0.8337116912599319,
+        "individual_replications": [
+          {
+            "seed": 20260810,
+            "samples": 262144,
+            "true_failures": 417,
+            "predicted_failures": 447,
+            "true_positive": 384,
+            "false_positive": 63,
+            "false_negative": 33,
+            "true_negative": 261664,
+            "true_pf": 0.001590728759765625,
+            "surrogate_pf": 0.001705169677734375
+          },
+          {
+            "seed": 20260811,
+            "samples": 262144,
+            "true_failures": 395,
+            "predicted_failures": 440,
+            "true_positive": 360,
+            "false_positive": 80,
+            "false_negative": 35,
+            "true_negative": 261669,
+            "true_pf": 0.001506805419921875,
+            "surrogate_pf": 0.001678466796875
+          },
+          {
+            "seed": 20260812,
+            "samples": 262144,
+            "true_failures": 383,
+            "predicted_failures": 429,
+            "true_positive": 349,
+            "false_positive": 80,
+            "false_negative": 34,
+            "true_negative": 261681,
+            "true_pf": 0.001461029052734375,
+            "surrogate_pf": 0.001636505126953125
+          },
+          {
+            "seed": 20260813,
+            "samples": 262144,
+            "true_failures": 400,
+            "predicted_failures": 446,
+            "true_positive": 376,
+            "false_positive": 70,
+            "false_negative": 24,
+            "true_negative": 261674,
+            "true_pf": 0.00152587890625,
+            "surrogate_pf": 0.00170135498046875
+          }
+        ]
+      },
+      "checkpoint": "results/five_story_frame/u_distance_development_checkpoints/seed_101_u_distance.npz"
+    }
+  ]
+}

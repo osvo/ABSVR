@@ -48,6 +48,11 @@ errors from 2.05% to 42.15%.  The single favorable seed is not selected or
 reported as representative.  The raw campaign remains in
 `results/five_story_frame/absvr_development.json`.
 
+Replacing SLF by `u_distance` at the same 123-call budget reduced the error of
+the three-seed mean to 13.25%, but individual errors still ranged from 1.86%
+to 30.34%.  This profile is also rejected at that budget; the complete result
+is retained in `results/five_story_frame/u_distance_development.json`.
+
 ## Literature checkpoints
 
 - Marelli and Sudret (2018) report `Pf = 1.54e-3` with a 95% importance-
