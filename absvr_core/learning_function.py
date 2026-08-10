@@ -22,12 +22,21 @@ def compute_learning_function(
     current_pf: float,
     model=None,
     w_grad: float = 1.0,
+    strategy: str = "slf",
 ):
-    """Return the learning function and associated pool subset."""
+    """Return the learning function and associated pool subset.
+
+    ``strategy='slf'`` preserves the historical penalty-style score.
+    ``strategy='u'`` uses the standard misclassification score
+    ``abs(mu) / sigma`` inside the same adaptive sampling region.
+    """
 
     grad_weight = float(w_grad)
     if grad_weight < 0.0:
         grad_weight = 0.0
+    strategy = str(strategy).strip().lower()
+    if strategy not in {"slf", "u"}:
+        raise ValueError("strategy must be 'slf' or 'u'.")
 
     v_pdf = v_pdf_pool
     v_joint_sorted = np.sort(v_pdf)
@@ -46,8 +55,19 @@ def compute_learning_function(
     if not region_indices.size:
         return np.array([]), mc_pool_region, region_indices
 
-    v_joint_region_norm = v_joint_region / np.max(v_joint_region)
     sqrt_g_mse = np.sqrt(np.maximum(g_mse_region, 0.0))
+    if strategy == "u":
+        finite_positive = sqrt_g_mse[np.isfinite(sqrt_g_mse) & (sqrt_g_mse > 0.0)]
+        scale = float(np.max(finite_positive)) if finite_positive.size else 1.0
+        denominator = np.maximum(
+            sqrt_g_mse,
+            NUMERICAL_STABILITY_TERM * max(scale, NUMERICAL_STABILITY_TERM),
+        )
+        lf = np.abs(g_predict_region) / denominator
+        lf = np.where(np.isfinite(lf), lf, np.inf)
+        return lf, mc_pool_region, region_indices
+
+    v_joint_region_norm = v_joint_region / np.max(v_joint_region)
     max_std = np.max(sqrt_g_mse)
     if max_std <= 0.0 or not np.isfinite(max_std):
         g_mse_region_norm = np.ones_like(sqrt_g_mse, dtype=float)

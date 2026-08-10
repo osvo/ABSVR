@@ -203,6 +203,7 @@ def run_one(
     verbose: bool,
     loss: str,
     hyperparameter_selection: str,
+    learning_strategy: str,
 ) -> dict[str, Any]:
     adaptive_module = importlib.import_module("absvr_core.adaptive_loop")
     pool_size = 1 << pool_log2
@@ -216,9 +217,10 @@ def run_one(
     else:
         trainer = PeriodicEvidenceGridTrainer(retune_interval=20, loss=loss)
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    strategy_suffix = "" if learning_strategy == "slf" else f"_learning_{learning_strategy}"
     checkpoint = checkpoint_dir / (
         f"seed_{seed}_gradient_{_gradient_label(gradient_weight)}_loss_{loss}_"
-        f"tuning_{hyperparameter_selection}.npz"
+        f"tuning_{hyperparameter_selection}{strategy_suffix}.npz"
     )
     resume_source = str(checkpoint) if resume and checkpoint.exists() else None
     result = run_adaptive_svr(
@@ -231,6 +233,7 @@ def run_one(
         initial_design="normal_lhs",
         svr_trainer=trainer,
         learning_w_grad=gradient_weight,
+        learning_strategy=learning_strategy,
         checkpoint_path=str(checkpoint),
         resume_from=resume_source,
         checkpoint_frequency=1,
@@ -253,6 +256,7 @@ def run_one(
         "gradient_weight": float(gradient_weight),
         "svr_loss": loss,
         "hyperparameter_selection": hyperparameter_selection,
+        "learning_strategy": learning_strategy,
         "open_sees_limit_state_calls": int(result.total_evaluations),
         "adaptive_candidate_pool_size": int(pool_size),
         "adaptive_pool_pf_diagnostic": float(result.probability_of_failure),
@@ -282,6 +286,11 @@ def main() -> None:
         "--hyperparameter-selection",
         choices=("evidence", "cross_validation"),
         default="evidence",
+    )
+    parser.add_argument(
+        "--learning-strategy",
+        choices=("slf", "u"),
+        default="slf",
     )
     parser.add_argument(
         "--campaign-stage",
@@ -352,6 +361,7 @@ def main() -> None:
                 verbose=args.verbose,
                 loss=args.loss,
                 hyperparameter_selection=args.hyperparameter_selection,
+                learning_strategy=args.learning_strategy,
             )
             runs.append(run)
             print(
@@ -398,6 +408,7 @@ def main() -> None:
             ),
             "hyperparameter_retune_interval": 20,
             "svr_loss": args.loss,
+            "learning_strategy": args.learning_strategy,
         },
         "independent_reference": {
             "path": args.reference.as_posix(),

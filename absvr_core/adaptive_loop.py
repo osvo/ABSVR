@@ -200,6 +200,7 @@ def run_adaptive_svr(
     v_pdf_pool_override: Optional[np.ndarray] = None,
     sobol_draw_count_override: Optional[int] = None,
     learning_w_grad: float = 1.0,
+    learning_strategy: str = "slf",
     svr_bounds_mode: str | None = None,
     tail_policy: str = "none",
     tail_alpha: float = 1.0,
@@ -250,6 +251,10 @@ def run_adaptive_svr(
         Optional Sobol draw count used to advance the sampler when a pool is reused.
     learning_w_grad:
         Weight for the gradient term in the learning function (0 disables it).
+    learning_strategy:
+        Candidate score inside the adaptive sampling region. ``"slf"``
+        preserves the historical score and ``"u"`` enables the standard
+        misclassification U-score baseline.
     svr_bounds_mode:
         Bound profile for the SVR optimizer ("python" or "baseline").
     tail_policy:
@@ -293,6 +298,10 @@ def run_adaptive_svr(
 
     if checkpoint_frequency <= 0:
         raise ValueError("checkpoint_frequency must be a positive integer.")
+
+    learning_strategy = str(learning_strategy).strip().lower()
+    if learning_strategy not in {"slf", "u"}:
+        raise ValueError("learning_strategy must be 'slf' or 'u'.")
 
     initial_design = str(initial_design).strip().lower()
     if initial_design not in {"uniform_box", "normal_lhs"}:
@@ -391,6 +400,14 @@ def run_adaptive_svr(
             raise ValueError(
                 f"Checkpoint expects initial_design={stored_initial_design!r}, "
                 f"but {initial_design!r} was provided."
+            )
+        stored_learning_strategy = str(
+            resume_state.get("learning_strategy", "slf")
+        ).lower()
+        if stored_learning_strategy != learning_strategy:
+            raise ValueError(
+                f"Checkpoint expects learning_strategy={stored_learning_strategy!r}, "
+                f"but {learning_strategy!r} was requested."
             )
         trainer_state = resume_state.get("svr_trainer_state")
         if trainer_state is not None and svr_trainer is not None:
@@ -629,6 +646,7 @@ def run_adaptive_svr(
             "tail_policy": tail_policy,
             "tail_alpha": float(tail_alpha),
             "initial_design": initial_design,
+            "learning_strategy": learning_strategy,
             "svr_trainer_state": trainer_state,
 
             "learning_w_grad": float(learning_w_grad),
@@ -754,6 +772,7 @@ def run_adaptive_svr(
                 current_pf,
                 model=surrogate_for_gradients,
                 w_grad=learning_w_grad,
+                strategy=learning_strategy,
             )
 
             if tail_policy != "none" and mc_pool_region.size and doe.shape[0] > 1:
