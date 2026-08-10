@@ -180,10 +180,10 @@ def _summarize_runs(
     }
 
 
-def _problem_with_log_response() -> tuple:
+def _problem_with_response(response: str) -> tuple:
     problem = list(get_problem_definition())
     settings = dict(problem[3])
-    settings["response"] = "log_ratio"
+    settings["response"] = response
     problem[3] = settings
     return tuple(problem)
 
@@ -207,6 +207,7 @@ def run_one(
     fixed_c: float,
     fixed_epsilon: float,
     fixed_theta: float,
+    response: str,
 ) -> dict[str, Any]:
     adaptive_module = importlib.import_module("absvr_core.adaptive_loop")
     pool_size = 1 << pool_log2
@@ -242,15 +243,17 @@ def run_one(
         if hyperparameter_selection == "fixed"
         else ""
     )
+    response_suffix = "" if response == "log_ratio" else f"_response_{response}"
     checkpoint = checkpoint_dir / (
         f"seed_{seed}_gradient_{_gradient_label(gradient_weight)}_loss_{loss}_"
-        f"tuning_{hyperparameter_selection}{fixed_suffix}{strategy_suffix}.npz"
+        f"tuning_{hyperparameter_selection}{fixed_suffix}{strategy_suffix}"
+        f"{response_suffix}.npz"
     )
     resume_source = str(checkpoint) if resume and checkpoint.exists() else None
     result = run_adaptive_svr(
         "eg7",
         max_added,
-        problem_definition=_problem_with_log_response(),
+        problem_definition=_problem_with_response(response),
         random_seed=seed,
         n0=15,
         min_samples=max_added,
@@ -290,6 +293,7 @@ def run_one(
             else None
         ),
         "learning_strategy": learning_strategy,
+        "response": response,
         "open_sees_limit_state_calls": int(result.total_evaluations),
         "adaptive_candidate_pool_size": int(pool_size),
         "adaptive_pool_pf_diagnostic": float(result.probability_of_failure),
@@ -323,6 +327,11 @@ def main() -> None:
     parser.add_argument("--fixed-c", type=float, default=1.0e3)
     parser.add_argument("--fixed-epsilon", type=float, default=1.0e-3)
     parser.add_argument("--fixed-theta", type=float, default=6.25e-3)
+    parser.add_argument(
+        "--response",
+        choices=("difference", "log_ratio"),
+        default="log_ratio",
+    )
     parser.add_argument(
         "--learning-strategy",
         choices=("slf", "u", "u_distance"),
@@ -403,6 +412,7 @@ def main() -> None:
                 fixed_c=args.fixed_c,
                 fixed_epsilon=args.fixed_epsilon,
                 fixed_theta=args.fixed_theta,
+                response=args.response,
             )
             runs.append(run)
             print(
@@ -438,7 +448,12 @@ def main() -> None:
         ],
         "training_protocol": {
             "initial_design": "15-point isoprobabilistic normal LHS",
-            "response": "log(displacement_limit / abs(midspan_displacement))",
+            "response": (
+                "displacement_limit - abs(midspan_displacement)"
+                if args.response == "difference"
+                else "log(displacement_limit / abs(midspan_displacement))"
+            ),
+            "response_identifier": args.response,
             "response_preserves_original_failure_event": True,
             "added_points": int(args.max_added),
             "candidate_pool_size": int(1 << args.pool_log2),

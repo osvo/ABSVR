@@ -144,7 +144,11 @@ metrics consistently:
   deviation to 2.382e-5, but all three runs overestimated failure probability;
   the error of the mean and the mean absolute error were both 4.71%, compared
   with 2.35% and 2.75% for evidence tuning on the same seeds.  The remaining
-  ten trajectories were therefore not run.
+  ten trajectories were therefore not run;
+- multiplying boundary diversity by the normalized gradient factor with unit
+  weight.  Its paired three-seed errors were 4.65%, 8.00%, and 19.57%, versus
+  6.73%, 0.60%, and 0.92% without the gradient.  The large deterioration in
+  the third run failed the extension gate.
 
 The last result is stored in
 `results/planar_truss/pool20_development_seed11.json`.  None of the discarded
@@ -165,13 +169,13 @@ profile only for final refitting reduced the across-seed standard deviation to
 mean still had 1.54% error.  The adaptive test above showed that this stability
 does not carry over when the same profile controls enrichment.
 
-The next controlled test returns to the evidence trainer and extends the
-boundary-diversity utility by the existing thesis gradient modulation.  With
-gradient weight one, its utility is fixed before evaluation as
-Phi(-U) * d_min * (1 + normalized gradient norm).  This changes no
-hyperparameter and reuses the thesis contribution that the jurors explicitly
-recommended evaluating by ablation.  It will first run on three development
-seeds at 55 calls.
+The next controlled test removes another material deviation from Wang et al.:
+the log-ratio target will be replaced by the conventional dimensional response
+`displacement_limit - abs(displacement)`.  This preserves the failure event but
+changes the regression geometry.  The evidence trainer, unmodulated
+boundary-diversity score, 2^17 pool, and 55-call budget remain fixed.  It will
+first run on three development seeds.  Only after the response comparison will
+anisotropic optimization be revisited, so that two changes are not confounded.
 
 The squared-epsilon branch already implements the exact active-set curvature:
 its dual contains the separate 1/C multiplier penalties, its predictive
