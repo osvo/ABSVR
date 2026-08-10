@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "status": "frozen_before_campaign",
+  "source_method": "Marelli and Sudret (2018), DOI 10.1016/j.strusafe.2018.06.003",
+  "algorithm_seeds": [
+    11
+  ],
+  "initial_design": {
+    "sampling": "LHS",
+    "size": 40
+  },
+  "method": "A-bPCE controller with direct UQLab sparse PCE and fast bootstrap",
+  "pce": {
+    "method": "LARS",
+    "degree": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "q_norm": 0.75,
+    "maximum_interaction": 2
+  },
+  "bootstrap_replications": 100,
+  "internal_mcs": {
+    "sampling": "MC",
+    "size": 1000000,
+    "common_random_numbers": true
+  },
+  "enrichment_points_per_iteration": 1,
+  "convergence": {
+    "relative_pf_range_tolerance": 0.15,
+    "consecutive_iterations": 2
+  },
+  "maximum_total_evaluations": 300,
+  "selection_uses_reference_probability": false,
+  "selection_uses_validation_set": false,
+  "matlab_executable": "C:\\Program Files\\MATLAB\\R2025b\\bin\\matlab.exe",
+  "uqlab_core": "C:\\Users\\osvo\\Documents\\Codex\\2026-08-08\\us\\work\\UQLab_Rel2.1.0\\core"
+}
