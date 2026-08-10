@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "status": "frozen_before_confirmation",
+  "status": "confirmation_passed",
   "benchmark": "published five-storey three-bay frame evaluated with OpenSeesPy",
   "development_algorithm_seeds": [
     11,
@@ -51,5 +51,14 @@
     "maximum_absolute_run_error_percent": 9.12535522576571
   },
   "decision_rule": "accept or reject the fixed 235-call profile from all ten confirmation runs; do not select a subset or alter the budget",
-  "frozen_algorithm_commit": "e945984706a338c4dcb6ea7f04bd8fb4d03cde85"
+  "frozen_algorithm_commit": "e945984706a338c4dcb6ea7f04bd8fb4d03cde85",
+  "confirmation_outcome": {
+    "path": "results/five_story_frame/confirmation_campaign_v2.json",
+    "runs": 10,
+    "mean_pf": 0.0015171051025390625,
+    "relative_error_of_mean_pf_percent": 0.4610041048310675,
+    "mean_absolute_run_error_percent": 3.4733185980423116,
+    "maximum_absolute_run_error_percent": 17.998105462582885,
+    "decision": "retain the fixed 235-call profile and report all runs"
+  }
 }

@@ -83,6 +83,14 @@ these results: the 235-call endpoint is carried forward to a new confirmation
 on a second disjoint seed set.  The development record is
 `results/five_story_frame/postconfirmation_budget235_development.json`.
 
+The frozen second confirmation passed on ten entirely new seeds.  Every run
+used 235 OpenSees calls.  The confirmed mean was `1.51711e-3`, with 0.461%
+error against the independent RQMC reference; the mean absolute run error was
+3.47%.  Eight runs had errors between 0.60% and 1.67%, while two outlying runs
+had 6.88% and 18.00% error.  All ten runs and their dispersion must be reported,
+not only the mean or the favorable subset.  The immutable record is
+`results/five_story_frame/confirmation_campaign_v2.json`.
+
 ## Literature checkpoints
 
 - Marelli and Sudret (2018) report `Pf = 1.54e-3` with a 95% importance-
