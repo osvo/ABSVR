@@ -91,6 +91,50 @@ had 6.88% and 18.00% error.  All ten runs and their dispersion must be reported,
 not only the mean or the favorable subset.  The immutable record is
 `results/five_story_frame/confirmation_campaign_v2.json`.
 
+## Direct UQLab comparators
+
+The state-of-the-art comparators use UQLab itself rather than local
+reimplementations of its regression or Kriging routines.  MATLAB calls the
+same OpenSeesPy limit-state function through a file bridge, and an append-only
+ledger records a digest and evaluation count for every true-model batch.
+UQLab's reported experimental-design size must equal the sum of the ledger's
+`evaluations` fields before a result is accepted.
+
+Run the published A-bPCE protocol with:
+
+```powershell
+.\.venv\Scripts\python.exe -m studies.five_story_frame.run_uqlab_abpce_campaign `
+  --uqlab-core C:\path\to\UQLab_Rel2.1.0\core
+```
+
+The controller follows Marelli and Sudret's active bootstrap-PCE algorithm:
+40 initial LHS points, sparse UQLab LARS PCE over degrees 1--10, hyperbolic
+truncation `q = 0.75`, maximum interaction two, 100 fast-bootstrap
+replications, a fixed `10^6`-point inner MCS sample, single-point enrichment,
+and a 0.15 relative probability-range criterion satisfied twice in a row.
+The 300-call maximum is fixed before the campaign.  The independent RQMC
+reference is used only after each run to calculate reported error.
+
+Run the literature-matched AK-MCS protocol with:
+
+```powershell
+.\.venv\Scripts\python.exe -m studies.five_story_frame.run_uqlab_akmcs_campaign `
+  --uqlab-core C:\path\to\UQLab_Rel2.1.0\core
+```
+
+This invokes UQLab's native AK-MCS with a 40-point LHS, Gaussian Kriging,
+the U learning function, and `10^6` inner MCS points.  A small external
+stopping callback supplies the frame paper's 0.15 probability-range criterion
+because UQLab 2.1's native `stopPf` hard-codes 0.10; no Kriging or enrichment
+code is replaced.  The callback also requires two consecutive successful
+iterations, and the total budget is capped at the 300 calls used in the
+published comparison.  Surrogate uncertainty bounds and binomial MCS
+intervals are stored under distinct names.
+
+Seed 11 is reserved for integration and protocol prechecks and is excluded
+from the disjoint confirmation seeds.  Precheck outcomes cannot alter the
+published settings above or select a favorable endpoint.
+
 ## Literature checkpoints
 
 - Marelli and Sudret (2018) report `Pf = 1.54e-3` with a 95% importance-
