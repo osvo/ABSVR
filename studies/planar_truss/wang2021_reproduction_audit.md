@@ -124,6 +124,15 @@ metrics consistently:
   this dispersion.  A post-hoc grid contained settings with a nearly unbiased
   mean only because large positive and negative run errors cancelled; those
   settings are explicitly ineligible for confirmation or publication.
+- multiplying the Gaussian sign-misclassification probability by the
+  nearest-design distance.  This parameter-free boundary-diversity score
+  improved substantially over the U-score on all 13 development seeds: the
+  error of the mean fell from 11.96% to 3.35%, and the mean and median
+  absolute per-run errors fell from 13.45% and 9.96% to 8.64% and 6.73%.
+  Sensitivity rose from 0.846 to 0.874.  However, the across-seed standard
+  deviation increased slightly to 1.939e-4 and the worst run still had a
+  35.31% error.  It is therefore an informative acquisition ablation, not a
+  confirmation candidate.
 
 The last result is stored in
 `results/planar_truss/pool20_development_seed11.json`.  None of the discarded
@@ -131,13 +140,19 @@ variants may be selected post hoc for the article.
 
 ## Next controlled comparison
 
-The next comparison will change only the acquisition score while retaining the
-same initial-design generator, squared-epsilon BSVR, 2^17 candidate set, and
-55-call budget.  Before inspecting its reference error, the new score is fixed
-as the product of the candidate's Gaussian probability of sign
-misclassification, Phi(-U), and its nearest-neighbour distance from the
-current design in independent standard-normal space.  Maximizing this product
-balances boundary uncertainty with coverage and avoids repeatedly enriching a
-single small part of the predicted limit-state surface.  It introduces no
-reference-dependent constant.  It will first be evaluated on three development
-seeds and extended to all development seeds only if that gate is promising.
+The acquisition experiments indicate that model selection, rather than lack of
+candidate diversity alone, is the next bottleneck.  The current deterministic
+evidence grid repeatedly selects very long isotropic length scales and its
+objective measures the complete response fit, not specifically the accuracy of
+the zero contour.  The next diagnostic will refit the already evaluated designs
+with the repository's reference-blind, sign-stratified cross-validation rule.
+This costs no additional limit-state calls.  Only if that diagnostic improves
+the held-out development results will a new adaptive campaign be authorized.
+
+The squared-epsilon branch already implements the exact active-set curvature:
+its dual contains the separate 1/C multiplier penalties, its predictive
+covariance uses the active Hessian C I, and its evidence determinant is
+consistent with that same loss.  Thus the thesis reviewers' concern about the
+heuristic H approximately equal to lambda I is already addressed; merely
+renaming this implementation as an exact-Hessian modification would not be a
+new contribution.
