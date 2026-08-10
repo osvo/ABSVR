@@ -204,6 +204,9 @@ def run_one(
     loss: str,
     hyperparameter_selection: str,
     learning_strategy: str,
+    fixed_c: float,
+    fixed_epsilon: float,
+    fixed_theta: float,
 ) -> dict[str, Any]:
     adaptive_module = importlib.import_module("absvr_core.adaptive_loop")
     pool_size = 1 << pool_log2
@@ -214,13 +217,34 @@ def run_one(
 
     if hyperparameter_selection == "cross_validation":
         trainer = PeriodicCrossValidationGridTrainer(retune_interval=20, loss=loss)
+    elif hyperparameter_selection == "fixed":
+        trainer = PeriodicEvidenceGridTrainer(
+            retune_interval=20,
+            initial_c_grid=(fixed_c,),
+            epsilon_grid=(fixed_epsilon,),
+            initial_theta_grid=(fixed_theta,),
+            c_factors=(1.0,),
+            theta_factors=(1.0,),
+            c_bounds=(fixed_c, fixed_c),
+            theta_bounds=(fixed_theta, fixed_theta),
+            loss=loss,
+        )
     else:
         trainer = PeriodicEvidenceGridTrainer(retune_interval=20, loss=loss)
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     strategy_suffix = "" if learning_strategy == "slf" else f"_learning_{learning_strategy}"
+    fixed_suffix = (
+        "_c_{c}_epsilon_{epsilon}_theta_{theta}".format(
+            c=_gradient_label(fixed_c),
+            epsilon=_gradient_label(fixed_epsilon),
+            theta=_gradient_label(fixed_theta),
+        )
+        if hyperparameter_selection == "fixed"
+        else ""
+    )
     checkpoint = checkpoint_dir / (
         f"seed_{seed}_gradient_{_gradient_label(gradient_weight)}_loss_{loss}_"
-        f"tuning_{hyperparameter_selection}{strategy_suffix}.npz"
+        f"tuning_{hyperparameter_selection}{fixed_suffix}{strategy_suffix}.npz"
     )
     resume_source = str(checkpoint) if resume and checkpoint.exists() else None
     result = run_adaptive_svr(
@@ -256,6 +280,15 @@ def run_one(
         "gradient_weight": float(gradient_weight),
         "svr_loss": loss,
         "hyperparameter_selection": hyperparameter_selection,
+        "fixed_hyperparameters": (
+            {
+                "C": float(fixed_c),
+                "epsilon": float(fixed_epsilon),
+                "theta": float(fixed_theta),
+            }
+            if hyperparameter_selection == "fixed"
+            else None
+        ),
         "learning_strategy": learning_strategy,
         "open_sees_limit_state_calls": int(result.total_evaluations),
         "adaptive_candidate_pool_size": int(pool_size),
@@ -284,9 +317,12 @@ def main() -> None:
     parser.add_argument("--loss", default="squared_epsilon")
     parser.add_argument(
         "--hyperparameter-selection",
-        choices=("evidence", "cross_validation"),
+        choices=("evidence", "cross_validation", "fixed"),
         default="evidence",
     )
+    parser.add_argument("--fixed-c", type=float, default=1.0e3)
+    parser.add_argument("--fixed-epsilon", type=float, default=1.0e-3)
+    parser.add_argument("--fixed-theta", type=float, default=6.25e-3)
     parser.add_argument(
         "--learning-strategy",
         choices=("slf", "u", "u_distance"),
@@ -339,6 +375,8 @@ def main() -> None:
             raise SystemExit(f"Development and confirmation seeds overlap: {overlap}")
     if args.max_added < 1 or args.pool_log2 < 1:
         raise SystemExit("Training budget and pool exponent must be positive.")
+    if min(args.fixed_c, args.fixed_epsilon, args.fixed_theta) <= 0.0:
+        raise SystemExit("Fixed SVR hyperparameters must be positive.")
     if args.validation_log2 < 1 or args.validation_replications < 1:
         raise SystemExit("Validation size and replication count must be positive.")
 
@@ -362,6 +400,9 @@ def main() -> None:
                 loss=args.loss,
                 hyperparameter_selection=args.hyperparameter_selection,
                 learning_strategy=args.learning_strategy,
+                fixed_c=args.fixed_c,
+                fixed_epsilon=args.fixed_epsilon,
+                fixed_theta=args.fixed_theta,
             )
             runs.append(run)
             print(
@@ -404,7 +445,20 @@ def main() -> None:
             "hyperparameter_selection": (
                 "periodic deterministic cross-validated grid"
                 if args.hyperparameter_selection == "cross_validation"
-                else "periodic deterministic Bayesian-evidence grid"
+                else (
+                    "single fixed development profile"
+                    if args.hyperparameter_selection == "fixed"
+                    else "periodic deterministic Bayesian-evidence grid"
+                )
+            ),
+            "fixed_hyperparameters": (
+                {
+                    "C": float(args.fixed_c),
+                    "epsilon": float(args.fixed_epsilon),
+                    "theta": float(args.fixed_theta),
+                }
+                if args.hyperparameter_selection == "fixed"
+                else None
             ),
             "hyperparameter_retune_interval": 20,
             "svr_loss": args.loss,

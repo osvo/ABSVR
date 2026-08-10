@@ -132,7 +132,13 @@ metrics consistently:
   Sensitivity rose from 0.846 to 0.874.  However, the across-seed standard
   deviation increased slightly to 1.939e-4 and the worst run still had a
   35.31% error.  It is therefore an informative acquisition ablation, not a
-  confirmation candidate.
+  confirmation candidate;
+- selecting the final model by sign-stratified cross-validation on the same
+  13 boundary-diversity designs.  Its mean happened to have 0.23% relative
+  error, but the mean absolute per-run error was 8.36% and the worst run was
+  42.08%.  In that worst run, the out-of-fold balanced sign error was zero,
+  demonstrating that sign accuracy on an adaptively concentrated design is
+  not a reliable proxy for the probability mass of the global failure domain.
 
 The last result is stored in
 `results/planar_truss/pool20_development_seed11.json`.  None of the discarded
@@ -142,12 +148,20 @@ variants may be selected post hoc for the article.
 
 The acquisition experiments indicate that model selection, rather than lack of
 candidate diversity alone, is the next bottleneck.  The current deterministic
-evidence grid repeatedly selects very long isotropic length scales and its
-objective measures the complete response fit, not specifically the accuracy of
-the zero contour.  The next diagnostic will refit the already evaluated designs
-with the repository's reference-blind, sign-stratified cross-validation rule.
-This costs no additional limit-state calls.  Only if that diagnostic improves
-the held-out development results will a new adaptive campaign be authorized.
+evidence grid repeatedly changes an isotropic model during enrichment, while
+sign-stratified cross-validation is overconfident on the concentrated adaptive
+design.
+
+A small global grid, evaluated on all 13 development designs, identified a
+stable region at C = 1e3, epsilon = 1e-3, and theta = 0.00625.  Using this one
+profile only for final refitting reduced the across-seed standard deviation to
+1.073e-4, the mean absolute error to 5.53%, and the worst error to 15.02%; its
+mean still had 1.54% error.  Because these constants were selected after
+inspecting the reference, they are development-only.  The next controlled test
+will use the same fixed profile throughout acquisition, with the already
+defined boundary-diversity score and a 55-call budget.  It will first run on
+three development seeds and will be extended only if the complete adaptive
+trajectory improves the robust metrics.
 
 The squared-epsilon branch already implements the exact active-set curvature:
 its dual contains the separate 1/C multiplier penalties, its predictive
